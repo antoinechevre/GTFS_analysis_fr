@@ -30,12 +30,19 @@ st.set_page_config(page_title="Analyse GTFS", page_icon="🚌", layout="wide")
 if "lang" not in st.session_state:
     st.session_state.lang = "fr"
 
-st.sidebar.selectbox(
-    t("app.sidebar_langue", st.session_state.lang),
-    options=list(LANGUES.keys()),
-    format_func=lambda code: LANGUES[code],
-    key="lang",
-)
+# Sur l'image Docker (déploiement Hugging Face), le sélecteur de langue est
+# désactivé et l'interface reste en français
+disable_lang_switch = os.environ.get("GTFS_DISABLE_LANG_SWITCH", "0") == "1"
+
+if disable_lang_switch:
+    st.session_state.lang = "fr"
+else:
+    st.sidebar.selectbox(
+        t("app.sidebar_langue", st.session_state.lang),
+        options=list(LANGUES.keys()),
+        format_func=lambda code: LANGUES[code],
+        key="lang",
+    )
 lang = st.session_state.lang
 
 # Titre principal

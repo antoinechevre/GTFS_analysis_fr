@@ -1,3 +1,13 @@
+---
+title: Analyse GTFS
+emoji: 🚌
+colorFrom: blue
+colorTo: green
+sdk: docker
+app_port: 7860
+pinned: false
+---
+
 # gtfs
 
 Cette librairie propose des fonctions utilitaires permettant de traiter des jeux de données GTFS au format zip afin de calculer des indicateurs à l'échelle des arrêts et des tronçons, par mode de transport (bus ou tram ou metro ou trolley). Les résultats obtenus sont alors exportables au format csv ou geojson.  

@@ -1,0 +1,21 @@
+.git
+.gitignore
+.devcontainer
+.venv
+env/
+__pycache__/
+*.pyc
+*.egg-info
+build/
+dist/
+
+# Notebook is large and not needed to run the Streamlit app
+gtfs_notebook.ipynb
+
+# Sample/generated data not used at runtime by app.py
+data/
+output/
+
+.DS_Store
+README.md
+LICENSE
