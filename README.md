@@ -126,6 +126,8 @@ Il est également possible de lancer l'application localement. Depuis la racine 
 
 Dans l’interface, l’utilisateur peut charger un fichier GTFS au format zip et une date d'étude. Les indicateurs sont ensuite générés automatiquement sous forme de tableau et de cartographie. Des fonctionnalités d'export des résultats sont proposées.
 
+En plus de l'upload, la barre latérale propose de choisir un GTFS déjà présent dans le catalogue partagé du dataset Hugging Face [antoinechevre/accessibility-data](https://huggingface.co/datasets/antoinechevre/accessibility-data) (dossier `GTFS/`, cf. `src/hf_cache.py`) : un GTFS uploadé par un visiteur y est renvoyé automatiquement pour être réutilisable sans réupload par la suite. Le dataset étant privé, un secret `HF_TOKEN` (droits lecture pour consulter le catalogue, écriture pour y contribuer) doit être configuré dans les paramètres du déploiement (Settings → Variables and secrets sur un Space Hugging Face) — sans lui, l'app se rabat silencieusement sur l'upload seul.
+
 ### Notebook d’exemple / démonstration
 
 Ouvrez ``gtfs_notebook.ipynb`` en local ou via [le lien Google Colab](https://colab.research.google.com/github/CEREMA/hackathon-gtfs/blob/main/gtfs_notebook.ipynb) pour suivre un workflow pas-à-pas :

@@ -9,3 +9,4 @@ gtfs-kit
 beautifulsoup4
 requests
 ipython
+huggingface_hub

@@ -13,6 +13,7 @@ import streamlit as st
 
 from src.utils import charger_gtfs, obtenir_service_ids_pour_date
 from src.info_reseau import dates_service, recuperer_logo_reseau, nom_reseau
+from src.hf_cache import envoyer_vers_hf, lister_fichiers_hf, recuperer_depuis_hf
 from src.i18n import t, LANGUES
 from views.home import home_page
 from views.arrets import arrets_page
@@ -88,6 +89,27 @@ if "selected_page" not in st.session_state:
 st.sidebar.header(t("app.sidebar_header", lang))
 uploaded_file = st.sidebar.file_uploader(t("app.sidebar_uploader", lang), type="zip")
 
+# Alternative à l'upload : choisir un GTFS déjà présent dans data/GTFS ou
+# dans le catalogue du dataset HF antoinechevre/accessibility-data (mêmes
+# fichiers, téléversés une fois pour toutes, cf. src/hf_cache.py). Union des
+# deux plutôt que l'un OU l'autre : data/GTFS n'est pas versionné par git
+# donc vide sur un déploiement fraîchement démarré sans stockage persistant,
+# mais peut aussi contenir un fichier déjà téléchargé à la demande lors
+# d'une sélection précédente — s'arrêter au premier non-vide masquerait
+# alors silencieusement tout le reste du catalogue HF.
+AUCUN_GTFS_LOCAL = t("app.aucun_gtfs_local", lang)
+GTFS_DATA_DIR = os.path.join(os.getcwd(), "data", "GTFS")
+gtfs_locaux_disque = sorted(
+    f for f in os.listdir(GTFS_DATA_DIR) if f.lower().endswith(".zip")
+) if os.path.isdir(GTFS_DATA_DIR) else []
+gtfs_locaux_hf = sorted(f for f in lister_fichiers_hf("GTFS") if f.lower().endswith(".zip"))
+gtfs_locaux = sorted(set(gtfs_locaux_disque) | set(gtfs_locaux_hf))
+
+gtfs_local_choisi = st.sidebar.selectbox(
+    t("app.sidebar_gtfs_existant", lang),
+    options=[AUCUN_GTFS_LOCAL] + gtfs_locaux,
+)
+
 # Variables globales pour stocker les résultats
 if "feed" not in st.session_state:
     st.session_state.feed = None
@@ -128,21 +150,38 @@ if "last_uploaded_name" not in st.session_state:
 # partir du GTFS (un mardi ou un jeudi tiré au hasard dans la plage de
 # service fiable, voir src/info_reseau.dates_service).
 def charger_donnees_gtfs():
-    if uploaded_file is None:
+    if uploaded_file is not None:
+        nom_gtfs = uploaded_file.name
+        lire_gtfs = uploaded_file.read
+    elif gtfs_local_choisi != AUCUN_GTFS_LOCAL:
+        nom_gtfs = gtfs_local_choisi
+        chemin_gtfs_local = os.path.join(GTFS_DATA_DIR, gtfs_local_choisi)
+        # recuperer_depuis_hf() ne fait rien si déjà présent en local (cas
+        # gtfs_locaux_disque) : pas besoin de distinguer les deux sources ici.
+        if not os.path.exists(chemin_gtfs_local):
+            with st.spinner(t("app.spinner_recuperation_hf", lang, nom=gtfs_local_choisi)):
+                if not recuperer_depuis_hf(f"GTFS/{gtfs_local_choisi}", chemin_gtfs_local):
+                    st.error(t("app.erreur_recuperation_hf", lang, nom=gtfs_local_choisi))
+                    return False
+        lire_gtfs = lambda: open(chemin_gtfs_local, "rb").read()
+    else:
         return False
 
     # Ne recharger le GTFS (et le logo, qui nécessite une requête réseau)
-    # que si un nouveau fichier a été uploadé, pas à chaque interaction
-    nouveau_fichier = uploaded_file.name != st.session_state.last_uploaded_name
+    # que si un nouveau fichier a été sélectionné, pas à chaque interaction
+    nouveau_fichier = nom_gtfs != st.session_state.last_uploaded_name
 
     if not nouveau_fichier and st.session_state.feed is not None:
         return True
 
-    # Sauvegarder temporairement le fichier (conservé pour toute la
-    # session : create_carte_arrets recharge le feed depuis ce chemin
-    # pour tracer les lignes)
+    # Copie dans un fichier temporaire (conservé pour toute la session :
+    # create_carte_arrets recharge le feed depuis ce chemin pour tracer les
+    # lignes) plutôt que d'opérer directement sur data/GTFS/<fichier> : entre
+    # autres, charger_gtfs() peut réécrire le zip en place si calendar_dates.txt
+    # est vide — sur le fichier original de data/GTFS, ça modifierait
+    # silencieusement la source versionnée sur le dataset HF.
     with tempfile.NamedTemporaryFile(delete=False, suffix=".zip") as tmp_file:
-        tmp_file.write(uploaded_file.read())
+        tmp_file.write(lire_gtfs())
         zip_path = tmp_file.name
 
     try:
@@ -180,7 +219,7 @@ def charger_donnees_gtfs():
         st.session_state.zip_path = zip_path
         st.session_state.nom_reseau_str = reseau_str
         st.session_state.chemin_logo = chemin_logo
-        st.session_state.last_uploaded_name = uploaded_file.name
+        st.session_state.last_uploaded_name = nom_gtfs
         st.session_state.indicateurs_arrets = None  # Réinitialiser les indicateurs
         st.session_state.indicateurs_bus = None
         st.session_state.indicateurs_tram = None
@@ -189,6 +228,15 @@ def charger_donnees_gtfs():
         st.session_state.indicateurs_ferry = None
         st.session_state.total_vk_plage = None
         st.session_state.modes_disponibles = None
+
+        # GTFS uploadé (pas choisi dans le catalogue existant) et jamais vu :
+        # renvoyé vers le dataset HF pour que les prochains déploiements /
+        # visiteurs le retrouvent dans "...ou choisir un GTFS déjà présent"
+        # sans avoir à le réuploader. Best-effort : n'empêche jamais le
+        # chargement en cours de réussir.
+        if uploaded_file is not None and nom_gtfs not in gtfs_locaux:
+            if envoyer_vers_hf(zip_path, f"GTFS/{nom_gtfs}"):
+                st.toast(t("app.toast_envoi_hf", lang, nom=nom_gtfs))
 
         return True
 

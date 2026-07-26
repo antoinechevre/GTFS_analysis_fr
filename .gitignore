@@ -14,5 +14,10 @@ env/
 # Fichiers générés (cartes HTML, CSV, logos)
 output/
 
+# Cache local des GTFS récupérés depuis le catalogue Hugging Face
+# (dataset antoinechevre/accessibility-data, dossier GTFS/) — repeuplé au
+# besoin par src/hf_cache.recuperer_depuis_hf, cf. app.py
+data/GTFS/
+
 # macOS
 .DS_Store
