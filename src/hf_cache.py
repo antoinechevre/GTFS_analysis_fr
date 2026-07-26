@@ -37,7 +37,8 @@ def recuperer_depuis_hf(nom_fichier_hf, destination_locale):
             filename=nom_fichier_hf,
             token=os.environ.get("HF_TOKEN"),
         )
-    except Exception:
+    except Exception as e:
+        print(f"[hf_cache] recuperer_depuis_hf({nom_fichier_hf!r}) a échoué : {e!r}")
         return False
 
     os.makedirs(os.path.dirname(destination_locale), exist_ok=True)
@@ -64,7 +65,8 @@ def envoyer_vers_hf(chemin_local, nom_fichier_hf):
             repo_type="dataset",
             token=os.environ.get("HF_TOKEN"),
         )
-    except Exception:
+    except Exception as e:
+        print(f"[hf_cache] envoyer_vers_hf({nom_fichier_hf!r}) a échoué : {e!r}")
         return False
     return True
 
@@ -87,7 +89,8 @@ def lister_fichiers_hf(sous_dossier):
             repo_type="dataset",
             token=os.environ.get("HF_TOKEN"),
         )
-    except Exception:
+    except Exception as e:
+        print(f"[hf_cache] lister_fichiers_hf({sous_dossier!r}) a échoué : {e!r}")
         return []
 
     prefixe = f"{sous_dossier}/"
