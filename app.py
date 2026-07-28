@@ -24,6 +24,23 @@ class TropAgencesError(Exception):
     """Levée quand le GTFS regroupe trop d'agences pour être traité par l'app."""
 
 
+# Exception au garde-fou "max 3 agences" (cf. TropAgencesError ci-dessous),
+# par nom de fichier GTFS : IDFM-gtfs.zip regroupe des dizaines d'agences
+# (RATP, SNCF, Optile...) mais reste un réseau urbain traitable — cf.
+# gtfs_notebook_idf.ipynb, dont cette app reprend la séquence (RER/
+# Transilien/TER distingués par agency_id, cache par réseau, cf.
+# views/troncons.py). Nom de réseau forcé plutôt que dérivé de agency.txt
+# (nom_reseau() concaténerait des dizaines de noms d'agence en une chaîne
+# de plusieurs centaines de caractères, invalide comme nom de fichier).
+# Vérifiée uniquement pour un GTFS choisi dans le catalogue existant
+# (uploaded_file is None dans charger_donnees_gtfs), jamais pour un upload :
+# l'exception est pour CE fichier précis, pas pour n'importe quel GTFS qui
+# porterait le même nom.
+GTFS_NOM_RESEAU_FORCE = {
+    "IDFM-gtfs.zip": "IDFM",
+}
+
+
 # Configuration de la page
 st.set_page_config(page_title="Analyse GTFS", page_icon="🚌", layout="wide")
 
@@ -119,18 +136,8 @@ if "date_str" not in st.session_state:
     st.session_state.date_str = None
 if "indicateurs_arrets" not in st.session_state:
     st.session_state.indicateurs_arrets = None
-if "indicateurs_bus" not in st.session_state:
-    st.session_state.indicateurs_bus = None
-if "indicateurs_tram" not in st.session_state:
-    st.session_state.indicateurs_tram = None
-if "indicateurs_metro" not in st.session_state:
-    st.session_state.indicateurs_metro = None
-if "indicateurs_trolley" not in st.session_state:
-    st.session_state.indicateurs_trolley = None
-if "indicateurs_ferry" not in st.session_state:
-    st.session_state.indicateurs_ferry = None
-if "indicateurs_train" not in st.session_state:
-    st.session_state.indicateurs_train = None
+if "indicateurs_par_mode" not in st.session_state:
+    st.session_state.indicateurs_par_mode = None
 if "total_vk_plage" not in st.session_state:
     st.session_state.total_vk_plage = None
 if "modes_disponibles" not in st.session_state:
@@ -194,11 +201,13 @@ def charger_donnees_gtfs():
         # L'app ne sait traiter que des GTFS urbains (un GTFS national/régional
         # regroupant de nombreuses agences ferait exploser les temps de calcul
         # et n'a pas de sens pour les indicateurs arrêts/tronçons proposés ici)
+        # — sauf exception nommée explicitement (cf. GTFS_NOM_RESEAU_FORCE).
         nb_agences = len(feed.agency)
-        if nb_agences > 3:
+        exception_valide = uploaded_file is None and nom_gtfs in GTFS_NOM_RESEAU_FORCE
+        if nb_agences > 3 and not exception_valide:
             raise TropAgencesError(nb_agences)
 
-        # Plage de service fiable et jour ouvré de base (mardi/jeudi au hasard)
+        # Plage de service fiable et jour ouvré de base (le plus tardif)
         _, _, _, date_JOB = dates_service(feed)
         date_str = date_JOB
 
@@ -208,7 +217,7 @@ def charger_donnees_gtfs():
         # Nom du réseau et logo (best-effort : le logo nécessite une
         # requête réseau vers le site de l'agence, ne doit pas bloquer
         # l'appli en cas d'échec)
-        reseau_str = str(nom_reseau(feed))
+        reseau_str = GTFS_NOM_RESEAU_FORCE[nom_gtfs] if exception_valide else str(nom_reseau(feed))
         try:
             chemin_logo = recuperer_logo_reseau(feed, dossier_sortie=tempfile.gettempdir())
         except Exception:
@@ -223,12 +232,7 @@ def charger_donnees_gtfs():
         st.session_state.chemin_logo = chemin_logo
         st.session_state.last_uploaded_name = nom_gtfs
         st.session_state.indicateurs_arrets = None  # Réinitialiser les indicateurs
-        st.session_state.indicateurs_bus = None
-        st.session_state.indicateurs_tram = None
-        st.session_state.indicateurs_metro = None
-        st.session_state.indicateurs_trolley = None
-        st.session_state.indicateurs_ferry = None
-        st.session_state.indicateurs_train = None
+        st.session_state.indicateurs_par_mode = None
         st.session_state.total_vk_plage = None
         st.session_state.modes_disponibles = None
 

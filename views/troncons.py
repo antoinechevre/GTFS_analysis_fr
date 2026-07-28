@@ -8,32 +8,67 @@ import tempfile
 import streamlit as st
 import streamlit.components.v1 as components
 
-from src.indicateurs_troncons import compute_indicateurs_troncons
+from src.indicateurs_troncons import calculer_frequentation_troncons
 from src.cartographie import creer_carte_troncons
 from src.create_troncons_uniques import creer_troncons_uniques
-from src.utils import km_par_ligne_plage, charger_ou_calculer_gdf
+from src.utils import km_par_ligne_plage
+from src.hf_cache import charger_ou_calculer_avec_cache_hf
 from src.export_html import exporter_camembert_html, exporter_tableau_lignes_html
 from src.info_reseau import dates_service, date_str, nom_reseau_str
 from src.i18n import t
 
-# route_type GTFS -> (nom_mode, emoji) pour chaque mode couvert par cette page
-MODES = [
-    (3, "Bus", "🚌"),
-    (0, "Tram", "🚊"),
-    (1, "Metro", "🚇"),
-    (11, "Trolley", "🚎"),
-    (4, "Ferry", "⛴️"),
-    (2, "Train", "🚆"),
+# route_type GTFS -> (nom_mode, emoji, agency_ids) pour chaque mode couvert
+# par cette page. agency_ids=None : pas de restriction au-delà du route_type.
+MODES_STANDARD = [
+    (3, "Bus", "🚌", None),
+    (0, "Tram", "🚊", None),
+    (1, "Metro", "🚇", None),
+    (11, "Trolley", "🚎", None),
+    (4, "Ferry", "⛴️", None),
+    (2, "Train", "🚆", None),
 ]
 
+# Exception IDFM : route_type=2 ("Train") y regroupe RER, Transilien et TER,
+# distingués par agency_id (agency_id différents et disjoints, vérifiés sur
+# routes.txt : IDFM:71=RER, IDFM:1046=Transilien, IDFM:93=TER hors IDF) —
+# cf. gtfs_notebook_idf.ipynb, dont cette page reprend la séquence.
+MODES_IDFM = [
+    (3, "Bus", "🚌", None),
+    (0, "Tram", "🚊", None),
+    (1, "Metro", "🚇", None),
+    (11, "Trolley", "🚎", None),
+    (4, "Ferry", "⛴️", None),
+    (2, "RER", "🚈", ["IDFM:71"]),
+    (2, "Transilien", "🚆", ["IDFM:1046"]),
+    (2, "TER", "🚄", ["IDFM:93"]),
+]
 
-def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, lang="fr"):
+# Palettes de couleurs pour les modes hors du jeu fixe géré nativement par
+# creer_carte_troncons (bus/tram/metro/trolley/ferry/train) — passées via
+# couches_supplementaires. Gris par défaut si un mode n'a pas de palette
+# dédiée ici.
+PALETTES_MODES_SUPPLEMENTAIRES = {
+    "RER": ["#f2f0f7", "#cbc9e2", "#9e9ac8", "#756bb1", "#54278f"],
+    "Transilien": ["#feedde", "#fdbe85", "#fd8d3c", "#e6550d", "#a63603"],
+    "TER": ["#f6eff7", "#bdc9e1", "#67a9cf", "#1c9099", "#016c59"],
+}
+PALETTE_GRISE_DEFAUT = ["#f7f7f7", "#cccccc", "#969696", "#636363", "#252525"]
+
+
+def modes_pour_reseau(nom_reseau_str):
+    """Liste des (route_type, nom_mode, emoji, agency_ids) à calculer pour
+    ce réseau — cf. MODES_IDFM ci-dessus pour l'exception RER/Transilien/TER."""
+    return MODES_IDFM if nom_reseau_str == "IDFM" else MODES_STANDARD
+
+
+def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, agency_ids=None, lang="fr"):
     """
     Calcule les tronçons uniques depuis le GTFS uploadé, ou les recharge
-    depuis le cache disque (data/memory_troncons/<nom_reseau_str>/) s'ils y
-    ont déjà été calculés pour ce réseau — la topologie des tronçons ne
-    dépend pas de la date d'analyse, donc sûre à réutiliser indéfiniment
-    tant que le GTFS ne change pas (cf. charger_ou_calculer_gdf, utils.py).
+    depuis le cache (disque local puis, à défaut, dataset Hugging Face —
+    cf. charger_ou_calculer_avec_cache_hf, hf_cache.py) s'ils y ont déjà
+    été calculés pour ce réseau. La topologie des tronçons ne dépend pas
+    de la date d'analyse, donc sûre à réutiliser indéfiniment tant que le
+    GTFS ne change pas.
 
     Parameters:
     -----------
@@ -42,26 +77,29 @@ def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, lan
     route_type : int
         Type de route GTFS (0=tram, 1=métro, 3=bus, 11=trolleybus, etc.)
     nom_mode : str
-        Nom du mode pour les messages ("Bus", "Tram", "Metro", "Trolley" ou "Ferry")
+        Nom du mode pour les messages et la clé de cache
     nom_reseau_str : str
         Nom du réseau, utilisé comme clé de cache
+    agency_ids : list[str], optional
+        Restreint en plus aux routes de ces agency_id (cf. MODES_IDFM)
 
     Returns:
     --------
     pandas.DataFrame : Tronçons avec colonnes nécessaires pour l'analyse
     """
-
-    chemin_cache = os.path.join(
-        "data", "memory_troncons", nom_reseau_str, f"troncons_{nom_mode.lower()}.csv"
-    )
+    nom_fichier = f"troncons_{nom_mode.lower()}.csv"
+    chemin_cache = os.path.join("data", "memory_troncons", nom_reseau_str, nom_fichier)
+    nom_fichier_hf = f"memory_troncons/{nom_reseau_str}/{nom_fichier}"
     deja_en_cache = os.path.exists(chemin_cache)
 
     if not deja_en_cache:
         st.info(t("troncons.spinner_calcul_auto", lang, mode=nom_mode))
 
     try:
-        troncons_gdf = charger_ou_calculer_gdf(
-            chemin_cache, lambda: creer_troncons_uniques(feed, route_type)
+        troncons_gdf = charger_ou_calculer_avec_cache_hf(
+            chemin_cache,
+            nom_fichier_hf,
+            lambda: creer_troncons_uniques(feed, route_type, agency_ids=agency_ids, prefixe=nom_mode.upper()),
         )
 
         if not deja_en_cache:
@@ -71,6 +109,27 @@ def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, lan
     except Exception as e:
         st.error(t("troncons.erreur_calcul_auto", lang, mode=nom_mode, erreur=e))
         return None
+
+
+def charger_ou_calculer_indicateurs(feed, route_type, nom_mode, nom_reseau_str, troncons_uniques, active_service_ids, agency_ids=None):
+    """
+    Calcule les indicateurs de fréquentation pour un mode, ou les recharge
+    depuis le cache (disque local puis dataset Hugging Face). Sûr d'une
+    exécution à l'autre car date_JOB est déterministe pour un GTFS donné
+    (cf. dates_service, info_reseau.py) : les indicateurs ne varient pas
+    d'un run à l'autre tant que le GTFS ne change pas.
+    """
+    nom_fichier = f"indicateurs_{nom_mode.lower()}.csv"
+    chemin_cache = os.path.join("data", "memory_troncons", nom_reseau_str, nom_fichier)
+    nom_fichier_hf = f"memory_troncons/{nom_reseau_str}/{nom_fichier}"
+
+    return charger_ou_calculer_avec_cache_hf(
+        chemin_cache,
+        nom_fichier_hf,
+        lambda: calculer_frequentation_troncons(
+            feed, troncons_uniques, active_service_ids, route_type=route_type, agency_ids=agency_ids
+        ),
+    )
 
 
 def troncons_page(lang="fr"):
@@ -96,15 +155,10 @@ def troncons_page(lang="fr"):
 
         st.markdown("---")
 
+        MODES = modes_pour_reseau(st.session_state.nom_reseau_str)
+
         # Calculer les indicateurs automatiquement si pas déjà fait
-        if (
-            st.session_state.indicateurs_bus is None
-            or st.session_state.indicateurs_tram is None
-            or st.session_state.indicateurs_metro is None
-            or st.session_state.indicateurs_trolley is None
-            or st.session_state.indicateurs_ferry is None
-            or st.session_state.indicateurs_train is None
-        ):
+        if st.session_state.indicateurs_par_mode is None:
 
             with st.spinner(t("troncons.spinner_reference", lang)):
                 troncons_par_mode = {
@@ -113,9 +167,10 @@ def troncons_page(lang="fr"):
                         route_type=route_type,
                         nom_mode=nom_mode,
                         nom_reseau_str=st.session_state.nom_reseau_str,
+                        agency_ids=agency_ids,
                         lang=lang,
                     )
-                    for route_type, nom_mode, _ in MODES
+                    for route_type, nom_mode, _, agency_ids in MODES
                 }
 
                 if any(t_ is None for t_ in troncons_par_mode.values()):
@@ -124,64 +179,32 @@ def troncons_page(lang="fr"):
 
             with st.spinner(t("troncons.spinner_indicateurs", lang)):
                 try:
-                    (
-                        indicateurs_bus,
-                        indicateurs_tram,
-                        indicateurs_metro,
-                        indicateurs_trolley,
-                        indicateurs_ferry,
-                        indicateurs_train,
-                    ) = compute_indicateurs_troncons(
-                        st.session_state.feed,
-                        st.session_state.active_service_ids,
-                        troncons_par_mode["Bus"],
-                        troncons_par_mode["Tram"],
-                        troncons_par_mode["Metro"],
-                        troncons_par_mode["Trolley"],
-                        troncons_par_mode["Ferry"],
-                        troncons_par_mode["Train"],
-                        nom_reseau_str=st.session_state.nom_reseau_str,
-                    )
-                    st.session_state.indicateurs_bus = indicateurs_bus
-                    st.session_state.indicateurs_tram = indicateurs_tram
-                    st.session_state.indicateurs_metro = indicateurs_metro
-                    st.session_state.indicateurs_trolley = indicateurs_trolley
-                    st.session_state.indicateurs_ferry = indicateurs_ferry
-                    st.session_state.indicateurs_train = indicateurs_train
+                    st.session_state.indicateurs_par_mode = {
+                        nom_mode: charger_ou_calculer_indicateurs(
+                            st.session_state.feed,
+                            route_type,
+                            nom_mode,
+                            st.session_state.nom_reseau_str,
+                            troncons_par_mode[nom_mode],
+                            st.session_state.active_service_ids,
+                            agency_ids=agency_ids,
+                        )
+                        for route_type, nom_mode, _, agency_ids in MODES
+                    }
                 except Exception as e:
                     st.error(t("troncons.erreur_indicateurs", lang, erreur=e))
                     return
 
-        if (
-            st.session_state.indicateurs_bus is not None
-            and st.session_state.indicateurs_tram is not None
-            and st.session_state.indicateurs_metro is not None
-            and st.session_state.indicateurs_trolley is not None
-            and st.session_state.indicateurs_ferry is not None
-            and st.session_state.indicateurs_train is not None
-        ):
+        if st.session_state.indicateurs_par_mode is not None:
 
-            indicateurs_bus = st.session_state.indicateurs_bus
-            indicateurs_tram = st.session_state.indicateurs_tram
-            indicateurs_metro = st.session_state.indicateurs_metro
-            indicateurs_trolley = st.session_state.indicateurs_trolley
-            indicateurs_ferry = st.session_state.indicateurs_ferry
-            indicateurs_train = st.session_state.indicateurs_train
-            indicateurs_par_mode = {
-                "Bus": indicateurs_bus,
-                "Tram": indicateurs_tram,
-                "Metro": indicateurs_metro,
-                "Trolley": indicateurs_trolley,
-                "Ferry": indicateurs_ferry,
-                "Train": indicateurs_train,
-            }
+            indicateurs_par_mode = st.session_state.indicateurs_par_mode
 
             st.success(t("troncons.succes", lang))
 
             # Statistiques globales
             st.header(t("troncons.header_stats", lang))
             colonnes_stats = st.columns(len(MODES))
-            for (_, nom_mode, emoji), colonne in zip(MODES, colonnes_stats):
+            for (_, nom_mode, emoji, _), colonne in zip(MODES, colonnes_stats):
                 indicateurs_mode = indicateurs_par_mode[nom_mode]
                 with colonne:
                     st.metric(
@@ -238,7 +261,7 @@ def troncons_page(lang="fr"):
                 mode for mode in MODES if len(indicateurs_par_mode[mode[1]]) > 0
             ]
             colonnes_top = st.columns(len(modes_presents))
-            for (_, nom_mode, emoji), colonne in zip(modes_presents, colonnes_top):
+            for (_, nom_mode, emoji, _), colonne in zip(modes_presents, colonnes_top):
                 indicateurs_mode = indicateurs_par_mode[nom_mode]
                 with colonne:
                     st.header(f"{emoji} " + t("troncons.header_top", lang, mode=nom_mode))
@@ -250,21 +273,42 @@ def troncons_page(lang="fr"):
                     else:
                         st.info(t("troncons.aucun_actif", lang, mode=nom_mode.lower()))
 
-            # Carte interactive
+            # Carte interactive : creer_carte_troncons attend 6 couches fixes
+            # (bus/tram/metro/trolley/ferry/train) + des couches
+            # supplémentaires génériques pour tout le reste (ex: RER/
+            # Transilien/TER pour IDFM, à la place du "Train" générique —
+            # cf. couches_supplementaires, cartographie.py).
             st.header(t("troncons.header_carte", lang))
             output_map = os.path.join(tempfile.gettempdir(), "troncons_map_streamlit.html")
+            noms_couches_fixes = {"Bus", "Tram", "Metro", "Trolley", "Ferry", "Train"}
+            gdf_train = indicateurs_par_mode.get("Train")
+            if gdf_train is None:
+                # Mode "Train" éclaté (ex: IDFM) : pas de couche générique,
+                # les sous-catégories partent en couches_supplementaires.
+                gdf_train = indicateurs_par_mode["Bus"].iloc[0:0]
+            couches_supplementaires = [
+                (
+                    indicateurs_par_mode[nom_mode],
+                    nom_mode,
+                    emoji,
+                    PALETTES_MODES_SUPPLEMENTAIRES.get(nom_mode, PALETTE_GRISE_DEFAUT),
+                )
+                for _, nom_mode, emoji, _ in MODES
+                if nom_mode not in noms_couches_fixes
+            ]
             m = creer_carte_troncons(
-                indicateurs_bus,
-                indicateurs_tram,
-                indicateurs_metro,
-                indicateurs_trolley,
-                indicateurs_ferry,
-                indicateurs_train,
+                indicateurs_par_mode["Bus"],
+                indicateurs_par_mode["Tram"],
+                indicateurs_par_mode["Metro"],
+                indicateurs_par_mode["Trolley"],
+                indicateurs_par_mode["Ferry"],
+                gdf_train,
                 output_map,
                 date_service_str,
                 nom_reseau_str=st.session_state.nom_reseau_str,
                 chemin_logo=st.session_state.chemin_logo,
                 lang=lang,
+                couches_supplementaires=couches_supplementaires,
             )
             # get_root().render() (le HTML complet, celui écrit par .save())
             # plutôt que _repr_html_() : cette dernière enveloppe la carte
@@ -276,7 +320,7 @@ def troncons_page(lang="fr"):
             # Télécharger les résultats
             st.header(t("commun.header_telechargement", lang))
             colonnes_telechargement = st.columns(len(MODES))
-            for (_, nom_mode, emoji), colonne in zip(MODES, colonnes_telechargement):
+            for (_, nom_mode, emoji, _), colonne in zip(MODES, colonnes_telechargement):
                 indicateurs_mode = indicateurs_par_mode[nom_mode]
                 with colonne:
                     csv = indicateurs_mode.to_csv(index=False).encode("utf-8")

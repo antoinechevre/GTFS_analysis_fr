@@ -244,7 +244,7 @@ def exporter_camembert_html(nom_reseau_str, date_service_str, lignes, output_pat
     print(f"✓ Camembert HTML exporté : {output_path}")
 
 
-def exporter_tableau_lignes_html(nom_reseau_str, date_service_str, feed, output_path, total_vk_plage=None, lang="fr"):
+def exporter_tableau_lignes_html(nom_reseau_str, date_service_str, feed, output_path, total_vk_plage=None, lang="fr", ordre_mode=None):
     """
     Génère un fichier HTML autonome présentant la liste des lignes et les vk par an, avec un style prédéfini.
 
@@ -268,15 +268,18 @@ def exporter_tableau_lignes_html(nom_reseau_str, date_service_str, feed, output_
 
     # Tri : d'abord par mode (Métro, puis Tram, puis Bus, puis les autres modes),
     # puis au sein d'un même mode par numéro de ligne (valeur numérique
-    # d'abord, puis les lignes non-numériques par ordre alphabétique)
-    ORDRE_MODE = {"Métro": 0, "Tram": 1, "Trolley": 2, "Ferry": 3, "Bus": 4}
+    # d'abord, puis les lignes non-numériques par ordre alphabétique).
+    # ordre_mode est surchargeable par l'appelant (ex: faire passer "RER"
+    # en tête pour IDFM, où le mode "Train" générique regroupe RER,
+    # Transilien et TER — cf. gtfs_notebook_idf.ipynb).
+    ordre_mode = ordre_mode or {"Métro": 0, "Tram": 1, "Train": 2, "Trolley": 3, "Ferry": 4, "Bus": 5}
 
     def cle_tri(row):
         nom = str(row["route_short_name"])
-        ordre_mode = ORDRE_MODE.get(row["mode"], len(ORDRE_MODE))
+        ordre = ordre_mode.get(row["mode"], len(ordre_mode))
         if nom.isdigit():
-            return (ordre_mode, 0, int(nom), "")
-        return (ordre_mode, 1, 0, nom)
+            return (ordre, 0, int(nom), "")
+        return (ordre, 1, 0, nom)
 
     lignes = lignes.assign(_cle=lignes.apply(cle_tri, axis=1))
     lignes = lignes.sort_values("_cle").drop(columns="_cle").reset_index(drop=True)
