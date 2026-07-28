@@ -11,7 +11,7 @@ import streamlit.components.v1 as components
 from src.indicateurs_troncons import compute_indicateurs_troncons
 from src.cartographie import creer_carte_troncons
 from src.create_troncons_uniques import creer_troncons_uniques
-from src.utils import km_par_ligne_plage
+from src.utils import km_par_ligne_plage, charger_ou_calculer_gdf
 from src.export_html import exporter_camembert_html, exporter_tableau_lignes_html
 from src.info_reseau import dates_service, date_str, nom_reseau_str
 from src.i18n import t
@@ -27,12 +27,13 @@ MODES = [
 ]
 
 
-def charger_ou_calculer_troncons(feed, route_type, nom_mode, lang="fr"):
+def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, lang="fr"):
     """
-    Calcule automatiquement les tronçons depuis le GTFS uploadé.
-
-    Cette fonction calcule toujours les tronçons à partir du feed GTFS fourni,
-    garantissant la compatibilité avec n'importe quel réseau de transport.
+    Calcule les tronçons uniques depuis le GTFS uploadé, ou les recharge
+    depuis le cache disque (data/memory_troncons/<nom_reseau_str>/) s'ils y
+    ont déjà été calculés pour ce réseau — la topologie des tronçons ne
+    dépend pas de la date d'analyse, donc sûre à réutiliser indéfiniment
+    tant que le GTFS ne change pas (cf. charger_ou_calculer_gdf, utils.py).
 
     Parameters:
     -----------
@@ -42,21 +43,29 @@ def charger_ou_calculer_troncons(feed, route_type, nom_mode, lang="fr"):
         Type de route GTFS (0=tram, 1=métro, 3=bus, 11=trolleybus, etc.)
     nom_mode : str
         Nom du mode pour les messages ("Bus", "Tram", "Metro", "Trolley" ou "Ferry")
+    nom_reseau_str : str
+        Nom du réseau, utilisé comme clé de cache
 
     Returns:
     --------
     pandas.DataFrame : Tronçons avec colonnes nécessaires pour l'analyse
     """
 
+    chemin_cache = os.path.join(
+        "data", "memory_troncons", nom_reseau_str, f"troncons_{nom_mode.lower()}.csv"
+    )
+    deja_en_cache = os.path.exists(chemin_cache)
 
-
-    st.info(t("troncons.spinner_calcul_auto", lang, mode=nom_mode))
+    if not deja_en_cache:
+        st.info(t("troncons.spinner_calcul_auto", lang, mode=nom_mode))
 
     try:
-        # Calculer les tronçons uniques
-        troncons_gdf = creer_troncons_uniques(feed, route_type)
+        troncons_gdf = charger_ou_calculer_gdf(
+            chemin_cache, lambda: creer_troncons_uniques(feed, route_type)
+        )
 
-        st.success(t("troncons.succes_calcul_auto", lang, n=len(troncons_gdf), mode=nom_mode))
+        if not deja_en_cache:
+            st.success(t("troncons.succes_calcul_auto", lang, n=len(troncons_gdf), mode=nom_mode))
         return troncons_gdf
 
     except Exception as e:
@@ -100,7 +109,11 @@ def troncons_page(lang="fr"):
             with st.spinner(t("troncons.spinner_reference", lang)):
                 troncons_par_mode = {
                     nom_mode: charger_ou_calculer_troncons(
-                        st.session_state.feed, route_type=route_type, nom_mode=nom_mode, lang=lang
+                        st.session_state.feed,
+                        route_type=route_type,
+                        nom_mode=nom_mode,
+                        nom_reseau_str=st.session_state.nom_reseau_str,
+                        lang=lang,
                     )
                     for route_type, nom_mode, _ in MODES
                 }
@@ -127,6 +140,7 @@ def troncons_page(lang="fr"):
                         troncons_par_mode["Trolley"],
                         troncons_par_mode["Ferry"],
                         troncons_par_mode["Train"],
+                        nom_reseau_str=st.session_state.nom_reseau_str,
                     )
                     st.session_state.indicateurs_bus = indicateurs_bus
                     st.session_state.indicateurs_tram = indicateurs_tram

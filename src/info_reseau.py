@@ -6,7 +6,6 @@ from urllib.parse import urljoin, urlparse
 from datetime import datetime
 import sys
 sys.path.append('..')
-import random
 
 from src.utils import longueur_lignes
 from src.i18n import t
@@ -58,17 +57,20 @@ def dates_service (feed):
     date_debut = min(dates_service)
     date_fin = max(dates_service)
     
-    #Sélection d'un jour au hasard un mardi ou un jeudi JOB au hasard
-    # parmi les dates de service effectivement présentes dans le GTFS
-    # (l'année est déduite de dates_service, pas codée en dur)
-
+    # Sélection du JOB (Jour Ouvré de Base) : le mardi ou jeudi le plus
+    # lointain dans le temps parmi les dates de service effectivement
+    # présentes dans le GTFS (l'année est déduite de dates_service, pas
+    # codée en dur). Déterministe (pas de tirage au hasard) : un même GTFS
+    # redonne toujours le même date_JOB, ce qui permet de mettre en cache
+    # les indicateurs par tronçon sans avoir à les invalider à chaque
+    # nouvelle exécution (cf. compute_indicateurs_troncons).
     dates_parsees = [datetime.strptime(d, "%Y%m%d") for d in dates_service]
 
     dates__mar_jeu = [
         d.strftime("%Y%m%d") for d in dates_parsees
         if d.weekday() in (1, 3)  # 1=mardi, 3=jeudi
     ]
-    date_JOB = random.choice(dates__mar_jeu) if dates__mar_jeu else random.choice(dates_service)
+    date_JOB = max(dates__mar_jeu) if dates__mar_jeu else max(dates_service)
     
     return dates_service, date_debut, date_fin, date_JOB
 

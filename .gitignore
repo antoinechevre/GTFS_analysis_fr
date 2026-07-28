@@ -19,5 +19,10 @@ output/
 # besoin par src/hf_cache.recuperer_depuis_hf, cf. app.py
 data/GTFS/
 
+# Cache local des tronçons uniques et indicateurs par tronçon, par réseau
+# — repeuplé au besoin par src/utils.charger_ou_calculer_gdf, cf.
+# views/troncons.py et gtfs_notebook_idf.ipynb
+data/memory_troncons/
+
 # macOS
 .DS_Store

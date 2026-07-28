@@ -1,3 +1,5 @@
+import os
+
 import gtfs_kit as gk
 import pandas as pd
 import numpy as np
@@ -294,8 +296,44 @@ def charger_csv_avec_geometrie(chemin_fichier):
         gdf = gpd.GeoDataFrame(df, geometry='geometry', crs='EPSG:4326')
     else:
         gdf = gpd.GeoDataFrame(df, crs='EPSG:4326')
-    
+
     return gdf
+
+
+def charger_ou_calculer_gdf(chemin_cache, fonction_calcul):
+    """
+    Cache disque pour une étape de calcul coûteuse (tronçons uniques,
+    indicateurs de fréquentation par tronçon...) : charge chemin_cache s'il
+    existe déjà, sinon appelle fonction_calcul() et sauvegarde le résultat
+    pour que les prochaines exécutions (notebook relancé, app redémarrée,
+    même réseau resélectionné) n'aient pas à tout recalculer.
+
+    Sûr à réutiliser d'une exécution à l'autre car date_JOB est désormais
+    déterministe pour un GTFS donné (cf. dates_service dans info_reseau.py) :
+    les indicateurs par tronçon ne varient donc pas d'un run à l'autre tant
+    que le GTFS ne change pas.
+
+    Parameters:
+    -----------
+    chemin_cache : str
+        Chemin du fichier CSV de cache (créé si absent).
+    fonction_calcul : callable
+        Fonction sans argument à appeler si le cache est absent ; doit
+        renvoyer un DataFrame ou GeoDataFrame.
+
+    Returns:
+    --------
+    DataFrame ou GeoDataFrame
+    """
+    if os.path.exists(chemin_cache):
+        print(f"✓ Chargé depuis le cache : {chemin_cache}")
+        return charger_csv_avec_geometrie(chemin_cache)
+
+    resultat = fonction_calcul()
+    os.makedirs(os.path.dirname(chemin_cache), exist_ok=True)
+    resultat.to_csv(chemin_cache, index=False)
+    print(f"✓ Calculé et mis en cache : {chemin_cache}")
+    return resultat
 
 
 
