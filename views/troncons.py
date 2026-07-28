@@ -61,6 +61,37 @@ def modes_pour_reseau(nom_reseau_str):
     return MODES_IDFM if nom_reseau_str == "IDFM" else MODES_STANDARD
 
 
+# Ordre d'affichage du camembert vk/an et du tableau des lignes pour IDFM :
+# RER en tête, puis les autres modes ferrés distingués (Transilien, TER)
+# plutôt que le "Train" générique (route_type=2) utilisé pour les autres
+# réseaux — cf. relabelliser_modes_route ci-dessous.
+ORDRE_MODE_IDFM = {"RER": 0, "Métro": 1, "Tram": 2, "Transilien": 3, "TER": 4, "Train": 5, "Trolley": 6, "Ferry": 7, "Bus": 8}
+
+
+def relabelliser_modes_route(total_vk_plage, feed, nom_reseau_str):
+    """
+    Pour IDFM, éclate le mode "Train" générique (route_type=2, tel que
+    calculé par km_par_ligne_plage à partir du seul route_type) en RER /
+    Transilien / TER dans la colonne 'mode' de total_vk_plage, par
+    agency_id (cf. MODES_IDFM) — pour que le camembert de répartition
+    vk/an et le tableau des lignes distinguent ces réseaux, comme le fait
+    déjà la carte des tronçons (couches_supplementaires).
+
+    Ne modifie rien pour les autres réseaux (retourné tel quel).
+    """
+    if nom_reseau_str != "IDFM":
+        return total_vk_plage
+
+    agency_par_route = feed.routes.set_index("route_id")["agency_id"]
+    total_vk_plage = total_vk_plage.copy()
+    for _, nom_mode, _, agency_ids in MODES_IDFM:
+        if agency_ids is None:
+            continue
+        est_ce_mode = total_vk_plage["route_id"].map(agency_par_route).isin(agency_ids)
+        total_vk_plage.loc[est_ce_mode, "mode"] = nom_mode
+    return total_vk_plage
+
+
 def charger_ou_calculer_troncons(feed, route_type, nom_mode, nom_reseau_str, agency_ids=None, lang="fr"):
     """
     Calcule les tronçons uniques depuis le GTFS uploadé, ou les recharge
@@ -220,10 +251,16 @@ def troncons_page(lang="fr"):
             if st.session_state.total_vk_plage is None:
                 with st.spinner(t("troncons.spinner_vkm", lang)):
                     liste_dates_service, _, _, _ = dates_service(st.session_state.feed)
-                    st.session_state.total_vk_plage = km_par_ligne_plage(
+                    total_vk_plage_brut = km_par_ligne_plage(
                         liste_dates_service, st.session_state.feed
                     )
+                    st.session_state.total_vk_plage = relabelliser_modes_route(
+                        total_vk_plage_brut, st.session_state.feed, st.session_state.nom_reseau_str
+                    )
             total_vk_plage = st.session_state.total_vk_plage
+            ordre_mode_lignes = (
+                ORDRE_MODE_IDFM if st.session_state.nom_reseau_str == "IDFM" else None
+            )
 
             date_service_str = t("commun.analyse_du", lang, date=st.session_state.date_str)
 
@@ -246,6 +283,7 @@ def troncons_page(lang="fr"):
                 output_tableau,
                 total_vk_plage=total_vk_plage,
                 lang=lang,
+                ordre_mode=ordre_mode_lignes,
             )
             with open(output_tableau, "r", encoding="utf-8") as f:
                 components.html(f.read(), height=600, scrolling=True)
