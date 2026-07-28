@@ -127,7 +127,7 @@ TRANSLATIONS = {
 
         # --- views/troncons.py ---
         "troncons.warning_limitations": """
-    ⚠️ Cette analyse a été debuggée sur plusieurs GTFS en mentionnant les modes bus / tram / metro / trolley / ferry
+    ⚠️ Cette analyse a été debuggée sur plusieurs GTFS en mentionnant les modes bus / tram / metro / trolley / ferry / train (RER, Transilien, TER...)
     """,
         "troncons.spinner_calcul_auto": "🔄 Calcul automatique des tronçons {mode} depuis le GTFS...",
         "troncons.succes_calcul_auto": "✅ {n} tronçons {mode} calculés automatiquement",
@@ -306,7 +306,7 @@ TRANSLATIONS = {
 
         # --- views/troncons.py ---
         "troncons.warning_limitations": """
-    ⚠️ This analysis has been debugged on several GTFS feeds covering the bus / tram / metro / trolley / ferry modes
+    ⚠️ This analysis has been debugged on several GTFS feeds covering the bus / tram / metro / trolley / ferry / train (RER, Transilien, TER...) modes
     """,
         "troncons.spinner_calcul_auto": "🔄 Automatically computing {mode} segments from the GTFS...",
         "troncons.succes_calcul_auto": "✅ {n} {mode} segments computed automatically",

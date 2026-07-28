@@ -8,7 +8,7 @@ import geopandas as gpd
 from shapely.geometry import LineString
 
 
-def creer_troncons_uniques(feed, route_type):
+def creer_troncons_uniques(feed, route_type, agency_ids=None, prefixe=None):
     """
     Crée un GeoDataFrame des tronçons uniques pour un type de route donné.
 
@@ -20,12 +20,22 @@ def creer_troncons_uniques(feed, route_type):
         Feed GTFS chargé
     route_type : int
         Type de route GTFS (0=tram, 3=bus, etc.)
+    agency_ids : list[str], optional
+        Restreint en plus aux routes de ces agency_id (ex : distinguer RER,
+        Transilien et TER, qui partagent tous route_type=2 dans le GTFS
+        IDFM mais ont des agency_id différents — cf. gtfs_notebook_idf.ipynb).
+        Par défaut, aucune restriction : toutes les routes du route_type.
+    prefixe : str, optional
+        Préfixe de troncon_unique_id à utiliser (ex: "RER") à la place de
+        celui dérivé de route_type — utile quand plusieurs sous-catégories
+        partagent le même route_type (cf. agency_ids ci-dessus), pour éviter
+        des identifiants ambigus entre elles.
 
     Returns:
     --------
     GeoDataFrame avec les tronçons uniques
     """
-    print(f"\nCréation des tronçons uniques pour route_type={route_type}...")
+    print(f"\nCréation des tronçons uniques pour route_type={route_type}" + (f", agency_ids={agency_ids}" if agency_ids else "") + "...")
 
     # 1. Préparer le mapping vers les parent_stations
     stops = feed.stops.copy()
@@ -45,8 +55,11 @@ def creer_troncons_uniques(feed, route_type):
         .to_dict("index")
     )
 
-    # 2. Filtrer les trips du bon type de route
-    routes_filtrees = feed.routes[feed.routes["route_type"] == route_type]["route_id"]
+    # 2. Filtrer les trips du bon type de route (et, si fourni, des bonnes agences)
+    routes_filtrees = feed.routes[feed.routes["route_type"] == route_type]
+    if agency_ids is not None:
+        routes_filtrees = routes_filtrees[routes_filtrees["agency_id"].isin(agency_ids)]
+    routes_filtrees = routes_filtrees["route_id"]
     trips_filtres = feed.trips[feed.trips["route_id"].isin(routes_filtrees)]
 
     # 3. Joindre stop_times avec les trips filtrés
@@ -141,8 +154,12 @@ def creer_troncons_uniques(feed, route_type):
     print("  → Génération des identifiants et géométries...")
 
     # Identifiants uniques
-    route_type_prefix = (
-        "METRP" if route_type == 1 else "TRAM" if route_type == 0 else "BUS" if route_type == 3 else f"RT{route_type}"
+    route_type_prefix = prefixe or (
+        "METRP" if route_type == 1
+        else "TRAM" if route_type == 0
+        else "BUS" if route_type == 3
+        else "TRAIN" if route_type == 2
+        else f"RT{route_type}"
     )
     troncons_uniques["troncon_unique_id"] = [
         f"TU_{route_type_prefix}_{i:06d}" for i in range(len(troncons_uniques))
@@ -225,6 +242,11 @@ if __name__ == "__main__":
     troncons_ferry = creer_troncons_uniques(feed, route_type=4)
     exporter_gdf_to_csv(troncons_ferry, "output/troncons_uniques_ferry.csv")
     # exporter_geojson(troncons_trolley, 'output/troncons_uniques_ferry2.geojson')
+
+    # Train (route_type = 2 : RER, Transilien, TER...)
+    troncons_train = creer_troncons_uniques(feed, route_type=2)
+    exporter_gdf_to_csv(troncons_train, "output/troncons_uniques_train.csv")
+    # exporter_geojson(troncons_train, 'output/troncons_uniques_train2.geojson')
 
 
     print("\n" + "=" * 70)

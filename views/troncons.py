@@ -23,6 +23,7 @@ MODES = [
     (1, "Metro", "🚇"),
     (11, "Trolley", "🚎"),
     (4, "Ferry", "⛴️"),
+    (2, "Train", "🚆"),
 ]
 
 
@@ -93,6 +94,7 @@ def troncons_page(lang="fr"):
             or st.session_state.indicateurs_metro is None
             or st.session_state.indicateurs_trolley is None
             or st.session_state.indicateurs_ferry is None
+            or st.session_state.indicateurs_train is None
         ):
 
             with st.spinner(t("troncons.spinner_reference", lang)):
@@ -115,6 +117,7 @@ def troncons_page(lang="fr"):
                         indicateurs_metro,
                         indicateurs_trolley,
                         indicateurs_ferry,
+                        indicateurs_train,
                     ) = compute_indicateurs_troncons(
                         st.session_state.feed,
                         st.session_state.active_service_ids,
@@ -123,12 +126,14 @@ def troncons_page(lang="fr"):
                         troncons_par_mode["Metro"],
                         troncons_par_mode["Trolley"],
                         troncons_par_mode["Ferry"],
+                        troncons_par_mode["Train"],
                     )
                     st.session_state.indicateurs_bus = indicateurs_bus
                     st.session_state.indicateurs_tram = indicateurs_tram
                     st.session_state.indicateurs_metro = indicateurs_metro
                     st.session_state.indicateurs_trolley = indicateurs_trolley
                     st.session_state.indicateurs_ferry = indicateurs_ferry
+                    st.session_state.indicateurs_train = indicateurs_train
                 except Exception as e:
                     st.error(t("troncons.erreur_indicateurs", lang, erreur=e))
                     return
@@ -139,6 +144,7 @@ def troncons_page(lang="fr"):
             and st.session_state.indicateurs_metro is not None
             and st.session_state.indicateurs_trolley is not None
             and st.session_state.indicateurs_ferry is not None
+            and st.session_state.indicateurs_train is not None
         ):
 
             indicateurs_bus = st.session_state.indicateurs_bus
@@ -146,12 +152,14 @@ def troncons_page(lang="fr"):
             indicateurs_metro = st.session_state.indicateurs_metro
             indicateurs_trolley = st.session_state.indicateurs_trolley
             indicateurs_ferry = st.session_state.indicateurs_ferry
+            indicateurs_train = st.session_state.indicateurs_train
             indicateurs_par_mode = {
                 "Bus": indicateurs_bus,
                 "Tram": indicateurs_tram,
                 "Metro": indicateurs_metro,
                 "Trolley": indicateurs_trolley,
                 "Ferry": indicateurs_ferry,
+                "Train": indicateurs_train,
             }
 
             st.success(t("troncons.succes", lang))
@@ -237,6 +245,7 @@ def troncons_page(lang="fr"):
                 indicateurs_metro,
                 indicateurs_trolley,
                 indicateurs_ferry,
+                indicateurs_train,
                 output_map,
                 date_service_str,
                 nom_reseau_str=st.session_state.nom_reseau_str,

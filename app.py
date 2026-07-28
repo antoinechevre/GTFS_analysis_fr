@@ -129,6 +129,8 @@ if "indicateurs_trolley" not in st.session_state:
     st.session_state.indicateurs_trolley = None
 if "indicateurs_ferry" not in st.session_state:
     st.session_state.indicateurs_ferry = None
+if "indicateurs_train" not in st.session_state:
+    st.session_state.indicateurs_train = None
 if "total_vk_plage" not in st.session_state:
     st.session_state.total_vk_plage = None
 if "modes_disponibles" not in st.session_state:
@@ -226,6 +228,7 @@ def charger_donnees_gtfs():
         st.session_state.indicateurs_metro = None
         st.session_state.indicateurs_trolley = None
         st.session_state.indicateurs_ferry = None
+        st.session_state.indicateurs_train = None
         st.session_state.total_vk_plage = None
         st.session_state.modes_disponibles = None
 
