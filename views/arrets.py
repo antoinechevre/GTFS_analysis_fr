@@ -12,6 +12,7 @@ from src.cartographie import create_carte_arrets
 from src.info_reseau import dates_service, date_str, nom_reseau_str
 from src.arrets import calculer_indicateurs_arrets
 from src.export_html import exporter_statistiques_html
+from src.hf_cache import charger_ou_calculer_avec_cache_hf
 from src.i18n import t
 
 
@@ -35,13 +36,25 @@ def arrets_page(lang="fr"):
         st.info(t("commun.plage_info", lang, plage=date_service_str, job=date_JOB_text))
 
 
-        # Calculer les indicateurs automatiquement si pas déjà fait
+        # Calculer les indicateurs automatiquement si pas déjà fait, ou les
+        # recharger depuis le cache (disque local puis dataset Hugging
+        # Face) s'ils y ont déjà été calculés pour ce réseau — sûr d'une
+        # exécution à l'autre car date_JOB est déterministe pour un GTFS
+        # donné (cf. dates_service, info_reseau.py).
         if st.session_state.indicateurs_arrets is None:
             with st.spinner(t("arrets.spinner_indicateurs", lang)):
                 try:
-                    indicateurs = calculer_indicateurs_arrets(
-                        st.session_state.feed,
-                        st.session_state.date_str,
+                    nom_fichier = "indicateurs_arrets.csv"
+                    nom_reseau = st.session_state.nom_reseau_str
+                    chemin_cache = os.path.join("data", "memory_troncons", nom_reseau, nom_fichier)
+                    nom_fichier_hf = f"memory_troncons/{nom_reseau}/{nom_fichier}"
+                    indicateurs = charger_ou_calculer_avec_cache_hf(
+                        chemin_cache,
+                        nom_fichier_hf,
+                        lambda: calculer_indicateurs_arrets(
+                            st.session_state.feed,
+                            st.session_state.date_str,
+                        ),
                     )
                     st.session_state.indicateurs_arrets = indicateurs
                 except Exception as e:

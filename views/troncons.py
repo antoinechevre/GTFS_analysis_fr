@@ -247,12 +247,23 @@ def troncons_page(lang="fr"):
                         int(indicateurs_mode["nombre_passages"].sum()),
                     )
 
-            # Répartition des véh.km par mode et tableau des lignes
+            # Répartition des véh.km par mode et tableau des lignes — calculé
+            # une fois puis mis en cache (disque local puis dataset Hugging
+            # Face), même principe que les tronçons/indicateurs par mode
+            # ci-dessus : sûr d'une exécution à l'autre car date_JOB est
+            # déterministe pour un GTFS donné (cf. info_reseau.py).
             if st.session_state.total_vk_plage is None:
                 with st.spinner(t("troncons.spinner_vkm", lang)):
-                    liste_dates_service, _, _, _ = dates_service(st.session_state.feed)
-                    total_vk_plage_brut = km_par_ligne_plage(
-                        liste_dates_service, st.session_state.feed
+                    def _calculer_vk_plage():
+                        liste_dates_service, _, _, _ = dates_service(st.session_state.feed)
+                        return km_par_ligne_plage(liste_dates_service, st.session_state.feed)
+
+                    nom_fichier = "total_vk_plage.csv"
+                    nom_reseau = st.session_state.nom_reseau_str
+                    chemin_cache = os.path.join("data", "memory_troncons", nom_reseau, nom_fichier)
+                    nom_fichier_hf = f"memory_troncons/{nom_reseau}/{nom_fichier}"
+                    total_vk_plage_brut = charger_ou_calculer_avec_cache_hf(
+                        chemin_cache, nom_fichier_hf, _calculer_vk_plage
                     )
                     st.session_state.total_vk_plage = relabelliser_modes_route(
                         total_vk_plage_brut, st.session_state.feed, st.session_state.nom_reseau_str
