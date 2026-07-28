@@ -33,7 +33,7 @@ TRANSLATIONS = {
         "commun.reseau_info": "Le GTFS concerne le réseau {reseau}",
         "commun.analyse_du": "Analyse du {date}",
         "commun.periode_service": "Période de service du {debut} au {fin}",
-        "commun.plage_info": "Il est valide sur la plage {plage}, le JOB choisi au hasard est {job}",
+        "commun.plage_info": "Il est valide sur la plage {plage}, le JOB (mardi/jeudi le plus tardif de cette plage) est {job}",
         "commun.veuillez_charger_gtfs": "👆 Veuillez charger un fichier GTFS.",
         "commun.calcul_en_cours": "🔄 Calcul des indicateurs en cours...",
         "commun.header_telechargement": "💾 Téléchargement",
@@ -70,7 +70,7 @@ TRANSLATIONS = {
 
     Cette application vous permet d'analyser les données GTFS (General Transit Feed Specification)
     pour extraire des indicateurs clés sur les transports en commun.
-    Elle détermine la plage temporelle sur laquelle le GTFS est actif et identifie un JOB (jour ouvrable de base mardi ou jeudi de manière aléatoire)
+    Elle détermine la plage temporelle sur laquelle le GTFS est actif et identifie un JOB (jour ouvrable de base : le mardi ou jeudi le plus tardif de cette plage)
 
 
     ### Fonctionnalités disponibles :
@@ -212,7 +212,7 @@ TRANSLATIONS = {
         "commun.reseau_info": "This GTFS covers the {reseau} network",
         "commun.analyse_du": "Analysis of {date}",
         "commun.periode_service": "Service period from {debut} to {fin}",
-        "commun.plage_info": "It is valid over the {plage} range, the randomly chosen Base Weekday (tuesday or thursday) is {job}",
+        "commun.plage_info": "It is valid over the {plage} range, the Base Weekday (the latest Tuesday or Thursday in this range) is {job}",
         "commun.veuillez_charger_gtfs": "👆 Please upload a GTFS file.",
         "commun.calcul_en_cours": "🔄 Computing indicators...",
         "commun.header_telechargement": "💾 Download",
@@ -249,7 +249,7 @@ TRANSLATIONS = {
 
     This application lets you analyze GTFS (General Transit Feed Specification) data
     to extract key public transit indicators.
-    It determines the time range over which the GTFS is active and identifies a JOB (baseline weekday, randomly a Tuesday or Thursday)
+    It determines the time range over which the GTFS is active and identifies a JOB (baseline weekday: the latest Tuesday or Thursday in that range)
 
 
     ### Available features:
