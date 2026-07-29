@@ -14,7 +14,7 @@ from src.create_troncons_uniques import creer_troncons_uniques
 from src.utils import km_par_ligne_plage
 from src.hf_cache import charger_ou_calculer_avec_cache_hf
 from src.export_html import exporter_camembert_html, exporter_tableau_lignes_html
-from src.info_reseau import dates_service, date_str, nom_reseau_str
+from src.info_reseau import charger_ou_calculer_dates_service, date_str, nom_reseau_str
 from src.i18n import t
 
 # route_type GTFS -> (nom_mode, emoji, agency_ids) pour chaque mode couvert
@@ -188,7 +188,9 @@ def troncons_page(lang="fr"):
         nom_reseau_valeur = nom_reseau_str(st.session_state.feed)
         st.info(t("commun.reseau_info", lang, reseau=nom_reseau_valeur))
 
-        _, date_debut, date_fin, date_JOB = dates_service(st.session_state.feed)
+        _, date_debut, date_fin, date_JOB = charger_ou_calculer_dates_service(
+            st.session_state.feed, st.session_state.nom_reseau_str
+        )
 
         date_service_str, date_JOB_text = date_str(date_debut, date_fin, date_JOB, lang=lang)
 
@@ -265,7 +267,9 @@ def troncons_page(lang="fr"):
             if st.session_state.total_vk_plage is None:
                 with st.spinner(t("troncons.spinner_vkm", lang)):
                     def _calculer_vk_plage():
-                        liste_dates_service, _, _, _ = dates_service(st.session_state.feed)
+                        liste_dates_service, _, _, _ = charger_ou_calculer_dates_service(
+                            st.session_state.feed, st.session_state.nom_reseau_str
+                        )
                         return km_par_ligne_plage(liste_dates_service, st.session_state.feed)
 
                     nom_fichier = "total_vk_plage.csv"

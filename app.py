@@ -12,7 +12,7 @@ sys.path.append('..')
 import streamlit as st
 
 from src.utils import charger_gtfs, obtenir_service_ids_pour_date
-from src.info_reseau import dates_service, recuperer_logo_reseau, nom_reseau
+from src.info_reseau import charger_ou_calculer_dates_service, recuperer_logo_reseau, nom_reseau
 from src.hf_cache import envoyer_vers_hf, lister_fichiers_hf, recuperer_depuis_hf
 from src.i18n import t, LANGUES
 from views.home import home_page
@@ -215,17 +215,20 @@ def charger_donnees_gtfs():
         if nb_agences > 3 and not exception_valide:
             raise TropAgencesError(nb_agences)
 
+        # Nom du réseau, calculé avant dates_service() : sert de clé de
+        # cache disque+HF pour son résultat (cf.
+        # charger_ou_calculer_dates_service, info_reseau.py).
+        reseau_str = GTFS_NOM_RESEAU_FORCE[nom_gtfs] if exception_valide else str(nom_reseau(feed))
+
         # Plage de service fiable et jour ouvré de base (le plus tardif)
-        _, _, _, date_JOB = dates_service(feed)
+        _, _, _, date_JOB = charger_ou_calculer_dates_service(feed, reseau_str)
         date_str = date_JOB
 
         # Obtenir les services actifs
         active_service_ids = obtenir_service_ids_pour_date(feed, date_str)
 
-        # Nom du réseau et logo (best-effort : le logo nécessite une
-        # requête réseau vers le site de l'agence, ne doit pas bloquer
-        # l'appli en cas d'échec)
-        reseau_str = GTFS_NOM_RESEAU_FORCE[nom_gtfs] if exception_valide else str(nom_reseau(feed))
+        # Logo (best-effort : nécessite une requête réseau vers le site de
+        # l'agence, ne doit pas bloquer l'appli en cas d'échec)
         if exception_valide and nom_gtfs in GTFS_LOGO_FORCE:
             chemin_logo = GTFS_LOGO_FORCE[nom_gtfs]
         else:

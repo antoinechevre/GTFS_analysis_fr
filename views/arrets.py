@@ -9,7 +9,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 from src.cartographie import create_carte_arrets
-from src.info_reseau import dates_service, date_str, nom_reseau_str
+from src.info_reseau import charger_ou_calculer_dates_service, date_str, nom_reseau_str
 from src.arrets import calculer_indicateurs_arrets
 from src.export_html import exporter_statistiques_html
 from src.hf_cache import charger_ou_calculer_avec_cache_hf
@@ -29,7 +29,9 @@ def arrets_page(lang="fr"):
         nom_reseau_valeur = nom_reseau_str(st.session_state.feed)
         st.info(t("commun.reseau_info", lang, reseau=nom_reseau_valeur))
 
-        _, date_debut, date_fin, date_JOB = dates_service(st.session_state.feed)
+        _, date_debut, date_fin, date_JOB = charger_ou_calculer_dates_service(
+            st.session_state.feed, st.session_state.nom_reseau_str
+        )
 
         date_service_str, date_JOB_text = date_str(date_debut, date_fin, date_JOB, lang=lang)
 
