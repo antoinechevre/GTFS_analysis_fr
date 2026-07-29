@@ -27,8 +27,8 @@ class TropAgencesError(Exception):
 # Exception au garde-fou "max 3 agences" (cf. TropAgencesError ci-dessous),
 # par nom de fichier GTFS : IDFM-gtfs.zip regroupe des dizaines d'agences
 # (RATP, SNCF, Optile...) mais reste un réseau urbain traitable — cf.
-# gtfs_notebook_idf.ipynb, dont cette app reprend la séquence (RER/
-# Transilien/TER distingués par agency_id, cache par réseau, cf.
+# gtfs_notebook_idf.ipynb, dont cette app reprend la séquence (RER/TER
+# distingués par agency_id, Transilien exclu, cache par réseau, cf.
 # views/troncons.py). Nom de réseau forcé plutôt que dérivé de agency.txt
 # (nom_reseau() concaténerait des dizaines de noms d'agence en une chaîne
 # de plusieurs centaines de caractères, invalide comme nom de fichier).
