@@ -56,7 +56,7 @@ def longueur_lignes(feed):
         print("⚠ shapes.txt absent du GTFS : longueur des lignes estimée à partir des arrêts (distance à vol d'oiseau)")
         return _longueur_lignes_depuis_arrets(feed)
 
-    geo_shapes = gk.geometrize_shapes(feed.shapes, use_utm=True)
+    geo_shapes = gk.geometrize_shapes(feed, use_utm=True)
     geo_shapes['longueur_km'] = geo_shapes.geometry.length / 1000
     # Associer chaque shape à sa ligne
     trips_shapes = feed.trips[['route_id', 'shape_id']].drop_duplicates()

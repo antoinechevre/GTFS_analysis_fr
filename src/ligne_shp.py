@@ -13,11 +13,8 @@ def trace_lignes_gtfs(zip_path, date_analyse):
     date_analyse = date_analyse   # format YYYYMMDD
     active_trips = feed.get_trips(date=date_analyse)
 
-    # Filtrer le DataFrame shapes sur les shape_id actifs
-    shapes_actifs = feed.shapes[feed.shapes['shape_id'].isin(active_trips['shape_id'].unique())]
-
-    # Convertir en GeoDataFrame
-    geo_shapes = gk.geometrize_shapes(shapes_actifs)
+    # Convertir les shapes actifs en GeoDataFrame
+    geo_shapes = gk.geometrize_shapes(feed, shape_ids=active_trips['shape_id'].unique())
 
     # Fusionner avec les routes pour avoir noms/couleurs
     trips_routes = active_trips.merge(feed.routes, on='route_id')
