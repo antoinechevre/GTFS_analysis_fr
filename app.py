@@ -40,6 +40,14 @@ GTFS_NOM_RESEAU_FORCE = {
     "IDFM-gtfs.zip": "IDFM",
 }
 
+# Logo forcé pour les mêmes réseaux que GTFS_NOM_RESEAU_FORCE : le fetch
+# automatique (recuperer_logo_reseau, via agency_url) échoue pour IDFM,
+# donc on sert un logo statique déposé à la main plutôt que de laisser
+# l'app sans logo.
+GTFS_LOGO_FORCE = {
+    "IDFM-gtfs.zip": os.path.join("data", "logos", "Logo_IDFM.png"),
+}
+
 
 # Configuration de la page
 st.set_page_config(page_title="Analyse GTFS", page_icon="🚌", layout="wide")
@@ -218,10 +226,13 @@ def charger_donnees_gtfs():
         # requête réseau vers le site de l'agence, ne doit pas bloquer
         # l'appli en cas d'échec)
         reseau_str = GTFS_NOM_RESEAU_FORCE[nom_gtfs] if exception_valide else str(nom_reseau(feed))
-        try:
-            chemin_logo = recuperer_logo_reseau(feed, dossier_sortie=tempfile.gettempdir())
-        except Exception:
-            chemin_logo = None
+        if exception_valide and nom_gtfs in GTFS_LOGO_FORCE:
+            chemin_logo = GTFS_LOGO_FORCE[nom_gtfs]
+        else:
+            try:
+                chemin_logo = recuperer_logo_reseau(feed, dossier_sortie=tempfile.gettempdir())
+            except Exception:
+                chemin_logo = None
 
         # Stocker dans session_state
         st.session_state.feed = feed
