@@ -54,9 +54,10 @@ if [ -n "$TOO_BIG" ]; then
     exit 1
 fi
 
+EXCLUDED_TEXT="${EXCLUDE_PATHS[*]:-none}"
 MESSAGE="Deploy snapshot of $(git rev-parse --short HEAD) — $(git log -1 --format=%s HEAD)
 
-Excludes: ${EXCLUDE_PATHS[*]}. See origin/gtfs-fr for full history."
+Excludes: ${EXCLUDED_TEXT}. See origin/gtfs-fr for full history."
 
 if [ -n "$PARENT" ]; then
     COMMIT=$(git commit-tree "$TREE" -p "$PARENT" -m "$MESSAGE")
