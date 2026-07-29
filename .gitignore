@@ -26,3 +26,9 @@ data/memory_troncons/
 
 # macOS
 .DS_Store
+
+# Secrets locaux (jamais commités)
+HF_token
+.env
+*.env
+.venv312/
