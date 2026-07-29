@@ -278,26 +278,29 @@ def exporter_geojson(gdf, chemin_fichier):
 
 def charger_csv_avec_geometrie(chemin_fichier):
     """
-    Charge un CSV contenant une colonne 'geometry' en WKT et retourne un GeoDataFrame.
-    
+    Charge un CSV et le retourne en GeoDataFrame s'il contient une colonne
+    'geometry' (en WKT), ou en DataFrame classique sinon — les indicateurs
+    par arrêt (cf. calculer_indicateurs_arrets, arrets.py) n'ont pas de
+    géométrie (juste stop_lat/stop_lon), donc mis en cache sans colonne
+    'geometry' : geopandas interdit d'assigner un crs à un GeoDataFrame
+    sans géométrie.
+
     Parameters:
     -----------
     chemin_fichier : str
         Chemin du fichier CSV
-    
+
     Returns:
     --------
-    GeoDataFrame
+    GeoDataFrame ou DataFrame
     """
     df = pd.read_csv(chemin_fichier)
-    
+
     if 'geometry' in df.columns:
         df['geometry'] = df['geometry'].apply(wkt.loads)
-        gdf = gpd.GeoDataFrame(df, geometry='geometry', crs='EPSG:4326')
-    else:
-        gdf = gpd.GeoDataFrame(df, crs='EPSG:4326')
+        return gpd.GeoDataFrame(df, geometry='geometry', crs='EPSG:4326')
 
-    return gdf
+    return df
 
 
 def charger_ou_calculer_gdf(chemin_cache, fonction_calcul):
