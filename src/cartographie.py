@@ -301,11 +301,12 @@ def creer_carte_troncons(gdf_bus, gdf_tram,gdf_metro, gdf_trolley, gdf_ferry, gd
         utils.py), affiché en haut à droite de la carte.
     couches_supplementaires : list[tuple], optional
         Couches additionnelles à superposer, chacune sous la forme
-        (gdf, nom_couche, emoji, colors) — même rendu que les couches
-        fixes ci-dessus, via _ajouter_couche_troncons_generique. Permet à
-        un appelant de distinguer de nouvelles sous-catégories (ex: RER /
-        Transilien / TER pour IDFM, cf. gtfs_notebook_idf.ipynb) sans que
-        cette fonction ait à les connaître.
+        (gdf, nom_couche, emoji, colors, poids_trait) — même rendu que les
+        couches fixes ci-dessus, via _ajouter_couche_troncons_generique.
+        poids_trait multiplie l'épaisseur de trait par défaut (1 = normal,
+        2 = deux fois plus épais, ex. RER). Permet à un appelant de
+        distinguer de nouvelles sous-catégories (ex: RER pour IDFM, cf.
+        gtfs_notebook_idf.ipynb) sans que cette fonction ait à les connaître.
 
     Returns:
     --------
@@ -759,11 +760,14 @@ def creer_carte_troncons(gdf_bus, gdf_tram,gdf_metro, gdf_trolley, gdf_ferry, gd
             </div>"""
 
     # ===== COUCHES SUPPLÉMENTAIRES (optionnelles, fournies par l'appelant) =====
-    for gdf_extra, nom_couche, emoji_extra, colors_extra in (couches_supplementaires or []):
+    # 5e élément du tuple : multiplicateur d'épaisseur de trait (1 par défaut),
+    # ex. 2 pour le RER afin de le distinguer visuellement sur la carte.
+    for gdf_extra, nom_couche, emoji_extra, colors_extra, poids_trait in (couches_supplementaires or []):
         legende_items_html = _ajouter_couche_troncons_generique(
             m, gdf_extra, nom_couche, emoji_extra, colors_extra, colonne_frequence, lang,
             legende_items_html, popup_id, popup_de, popup_a, popup_passages,
             popup_vitesse, popup_distance, suffixe_passages,
+            weight_base=2 * poids_trait, weight_amplitude=6 * poids_trait,
         )
 
     # Ajouter le contrôle des couches (cases à cocher)

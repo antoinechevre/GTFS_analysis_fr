@@ -19,20 +19,24 @@ from src.i18n import t
 
 # route_type GTFS -> (nom_mode, emoji, agency_ids) pour chaque mode couvert
 # par cette page. agency_ids=None : pas de restriction au-delà du route_type.
+# Le "Train" générique (route_type=2) est exclu de l'analyse pour les
+# réseaux standards : sans distinction d'agence, il regrouperait des
+# services régionaux (TER...) qu'on ne veut pas comptabiliser, comme pour
+# IDFM ci-dessous (cf. MODES_IDFM).
 MODES_STANDARD = [
     (3, "Bus", "🚌", None),
     (0, "Tram", "🚊", None),
     (1, "Metro", "🚇", None),
     (11, "Trolley", "🚎", None),
     (4, "Ferry", "⛴️", None),
-    (2, "Train", "🚆", None),
 ]
 
 # Exception IDFM : route_type=2 ("Train") y regroupe RER, Transilien et TER,
 # distingués par agency_id (agency_id différents et disjoints, vérifiés sur
 # routes.txt : IDFM:71=RER, IDFM:1046=Transilien, IDFM:93=TER hors IDF) —
-# cf. gtfs_notebook_idf.ipynb, dont cette page reprend la séquence. Le
-# Transilien est volontairement exclu de l'analyse (cf. gtfs_notebook_idf.ipynb).
+# cf. gtfs_notebook_idf.ipynb, dont cette page reprend la séquence. Seul le
+# RER est conservé : Transilien et TER sont volontairement exclus de
+# l'analyse (cf. gtfs_notebook_idf.ipynb).
 MODES_IDFM = [
     (3, "Bus", "🚌", None),
     (0, "Tram", "🚊", None),
@@ -40,7 +44,6 @@ MODES_IDFM = [
     (11, "Trolley", "🚎", None),
     (4, "Ferry", "⛴️", None),
     (2, "RER", "🚈", ["IDFM:71"]),
-    (2, "TER", "🚄", ["IDFM:93"]),
 ]
 
 # Palettes de couleurs pour les modes hors du jeu fixe géré nativement par
@@ -49,40 +52,50 @@ MODES_IDFM = [
 # dédiée ici.
 PALETTES_MODES_SUPPLEMENTAIRES = {
     "RER": ["#f2f0f7", "#cbc9e2", "#9e9ac8", "#756bb1", "#54278f"],
-    "TER": ["#f6eff7", "#bdc9e1", "#67a9cf", "#1c9099", "#016c59"],
 }
 PALETTE_GRISE_DEFAUT = ["#f7f7f7", "#cccccc", "#969696", "#636363", "#252525"]
 
-# agency_id du Transilien dans le GTFS IDFM (cf. MODES_IDFM ci-dessus) —
-# utilisé pour l'exclure du camembert vk/an et du tableau des lignes, en
-# plus de son absence de MODES_IDFM (qui l'exclut déjà de la carte et des
-# statistiques par mode).
+# Multiplicateur d'épaisseur de trait sur la carte pour certains modes
+# supplémentaires (cf. couches_supplementaires, cartographie.py) — le RER
+# est tracé deux fois plus épais que les autres modes pour le distinguer
+# visuellement. 1 (normal) par défaut pour tout mode absent de ce dict.
+MULTIPLICATEUR_EPAISSEUR_MODES_SUPPLEMENTAIRES = {
+    "RER": 2,
+}
+
+# agency_id du Transilien et du TER dans le GTFS IDFM (cf. MODES_IDFM
+# ci-dessus) — utilisés pour les exclure du camembert vk/an et du tableau
+# des lignes, en plus de leur absence de MODES_IDFM (qui les exclut déjà de
+# la carte et des statistiques par mode).
 IDFM_AGENCY_ID_TRANSILIEN = "IDFM:1046"
+IDFM_AGENCY_ID_TER = "IDFM:93"
+IDFM_AGENCY_IDS_EXCLUS = {IDFM_AGENCY_ID_TRANSILIEN, IDFM_AGENCY_ID_TER}
 
 
 def modes_pour_reseau(nom_reseau_str):
     """Liste des (route_type, nom_mode, emoji, agency_ids) à calculer pour
-    ce réseau — cf. MODES_IDFM ci-dessus pour l'exception RER/TER (Transilien exclu)."""
+    ce réseau — cf. MODES_IDFM ci-dessus pour l'exception RER (Transilien et
+    TER exclus)."""
     return MODES_IDFM if nom_reseau_str == "IDFM" else MODES_STANDARD
 
 
 # Ordre d'affichage du camembert vk/an et du tableau des lignes pour IDFM :
-# RER en tête, puis les autres modes ferrés distingués (TER) plutôt que le
-# "Train" générique (route_type=2) utilisé pour les autres réseaux — cf.
-# relabelliser_modes_route ci-dessous.
-ORDRE_MODE_IDFM = {"RER": 0, "Métro": 1, "Tram": 2, "TER": 3, "Train": 4, "Trolley": 5, "Ferry": 6, "Bus": 7}
+# RER en tête, avant les autres modes — cf. relabelliser_modes_route
+# ci-dessous. ("Train" est conservé en repli au cas où une ligne train
+# n'appartiendrait à aucune agence connue de MODES_IDFM.)
+ORDRE_MODE_IDFM = {"RER": 0, "Métro": 1, "Tram": 2, "Train": 3, "Trolley": 4, "Ferry": 5, "Bus": 6}
 
 
 def relabelliser_modes_route(total_vk_plage, feed, nom_reseau_str):
     """
     Pour IDFM, éclate le mode "Train" générique (route_type=2, tel que
-    calculé par km_par_ligne_plage à partir du seul route_type) en RER /
-    TER dans la colonne 'mode' de total_vk_plage, par agency_id (cf.
+    calculé par km_par_ligne_plage à partir du seul route_type) en RER
+    dans la colonne 'mode' de total_vk_plage, par agency_id (cf.
     MODES_IDFM) — pour que le camembert de répartition vk/an et le
-    tableau des lignes distinguent ces réseaux, comme le fait déjà la
-    carte des tronçons (couches_supplementaires). Le Transilien est
-    retiré de total_vk_plage (volontairement exclu de l'analyse, cf.
-    gtfs_notebook_idf.ipynb), plutôt que laissé sous l'étiquette "Train".
+    tableau des lignes distinguent ce réseau, comme le fait déjà la
+    carte des tronçons (couches_supplementaires). Le Transilien et le TER
+    sont retirés de total_vk_plage (volontairement exclus de l'analyse,
+    cf. gtfs_notebook_idf.ipynb), plutôt que laissés sous l'étiquette "Train".
 
     Ne modifie rien pour les autres réseaux (retourné tel quel).
     """
@@ -92,8 +105,8 @@ def relabelliser_modes_route(total_vk_plage, feed, nom_reseau_str):
     agency_par_route = feed.routes.set_index("route_id")["agency_id"]
     total_vk_plage = total_vk_plage.copy()
     agences_route = total_vk_plage["route_id"].map(agency_par_route)
-    total_vk_plage = total_vk_plage[agences_route != IDFM_AGENCY_ID_TRANSILIEN].copy()
-    agences_route = agences_route[agences_route != IDFM_AGENCY_ID_TRANSILIEN]
+    total_vk_plage = total_vk_plage[~agences_route.isin(IDFM_AGENCY_IDS_EXCLUS)].copy()
+    agences_route = agences_route[~agences_route.isin(IDFM_AGENCY_IDS_EXCLUS)]
     for _, nom_mode, _, agency_ids in MODES_IDFM:
         if agency_ids is None:
             continue
@@ -338,9 +351,9 @@ def troncons_page(lang="fr"):
 
             # Carte interactive : creer_carte_troncons attend 6 couches fixes
             # (bus/tram/metro/trolley/ferry/train) + des couches
-            # supplémentaires génériques pour tout le reste (ex: RER/TER
-            # pour IDFM, à la place du "Train" générique — Transilien
-            # exclu, cf. MODES_IDFM ci-dessus. Voir couches_supplementaires,
+            # supplémentaires génériques pour tout le reste (ex: RER pour
+            # IDFM, à la place du "Train" générique — Transilien et TER
+            # exclus, cf. MODES_IDFM ci-dessus. Voir couches_supplementaires,
             # cartographie.py).
             st.header(t("troncons.header_carte", lang))
             output_map = os.path.join(tempfile.gettempdir(), "troncons_map_streamlit.html")
@@ -356,6 +369,7 @@ def troncons_page(lang="fr"):
                     nom_mode,
                     emoji,
                     PALETTES_MODES_SUPPLEMENTAIRES.get(nom_mode, PALETTE_GRISE_DEFAUT),
+                    MULTIPLICATEUR_EPAISSEUR_MODES_SUPPLEMENTAIRES.get(nom_mode, 1),
                 )
                 for _, nom_mode, emoji, _ in MODES
                 if nom_mode not in noms_couches_fixes
