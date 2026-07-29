@@ -27,9 +27,7 @@ MAX_SIZE=$((10 * 1024 * 1024))  # 10 MiB, limite HF hors Xet/LFS
 # au runtime (l'appli récupère ses GTFS depuis le dataset HF au runtime,
 # pas de ce dépôt). Ajoute ici tout nouveau fichier binaire/volumineux qui
 # ferait échouer le push.
-EXCLUDE_PATHS=(
-    "data/TAM_MMM_GTFS.zip"
-)
+EXCLUDE_PATHS=()
 
 git fetch "$REMOTE" "$BRANCH" -q || true
 PARENT=$(git rev-parse "$REMOTE/$BRANCH" 2>/dev/null || echo "")
@@ -39,8 +37,10 @@ trap 'rm -f "$INDEX_FILE"' EXIT
 export GIT_INDEX_FILE="$INDEX_FILE"
 
 git read-tree HEAD
-for path in "${EXCLUDE_PATHS[@]}"; do
-    git rm --cached -q --ignore-unmatch -- "$path"
+# "${arr[@]}" sur un tableau vide plante sous `set -u` avec le bash 3.2
+# livré par macOS (Apple ne fournit plus de bash GPLv3+) : ${arr[@]:-} évite ça.
+for path in "${EXCLUDE_PATHS[@]:-}"; do
+    [ -n "$path" ] && git rm --cached -q --ignore-unmatch -- "$path"
 done
 TREE=$(git write-tree)
 unset GIT_INDEX_FILE
