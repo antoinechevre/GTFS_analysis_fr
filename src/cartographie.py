@@ -42,7 +42,8 @@ def create_carte_arrets(df, nom_reseau_str,date_service_str, date_analyse, zip_p
     trips_routes = active_trips.merge(feed.routes, on='route_id')
 
     if feed.shapes is not None and not feed.shapes.empty:
-        geo_shapes = gk.geometrize_shapes(feed, shape_ids=active_trips['shape_id'].unique())
+        shapes_actifs = feed.shapes[feed.shapes['shape_id'].isin(active_trips['shape_id'].unique())]
+        geo_shapes = gk.geometrize_shapes(shapes_actifs)
         geo_shapes = geo_shapes.merge(
             trips_routes[['shape_id', 'route_short_name', 'route_color']].drop_duplicates(),
             on='shape_id'
