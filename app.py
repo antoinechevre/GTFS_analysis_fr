@@ -130,9 +130,17 @@ gtfs_locaux_disque = sorted(
 gtfs_locaux_hf = sorted(f for f in lister_fichiers_hf("GTFS") if f.lower().endswith(".zip"))
 gtfs_locaux = sorted(set(gtfs_locaux_disque) | set(gtfs_locaux_hf))
 
+gtfs_options = [AUCUN_GTFS_LOCAL] + gtfs_locaux
+# Présélection depuis l'app Accessibilité (paramètre ?gtfs=<nom_fichier.zip>
+# dans le lien "Pour analyser le GTFS correspondant") : ignoré silencieusement
+# si le fichier ne fait pas partie du catalogue actuel (ex. lien obsolète).
+gtfs_query_param = st.query_params.get("gtfs")
+index_gtfs_defaut = gtfs_options.index(gtfs_query_param) if gtfs_query_param in gtfs_locaux else 0
+
 gtfs_local_choisi = st.sidebar.selectbox(
     t("app.sidebar_gtfs_existant", lang),
-    options=[AUCUN_GTFS_LOCAL] + gtfs_locaux,
+    options=gtfs_options,
+    index=index_gtfs_defaut,
 )
 
 # Variables globales pour stocker les résultats
