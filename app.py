@@ -75,12 +75,48 @@ lang = st.session_state.lang
 st.title(t("app.title", lang))
 
 # Navigation horizontale en haut
+# Identité visuelle reprise de l'app sœur "accessibility"
+# (https://huggingface.co/spaces/antoinechevre/accessibility) : la palette
+# elle-même vient de .streamlit/config.toml (thème natif Streamlit, s'applique
+# aussi aux widgets natifs — selectbox, file_uploader, etc. — qu'une simple
+# règle CSS ne pourrait pas cibler proprement). Ce bloc ne couvre que ce que
+# le thème ne fait pas : la barre de nav (boutons pleine largeur, état actif)
+# et l'espacement des titres.
 st.markdown(
     """
 <style>
 .stButton button {
     width: 100% !important;
     margin: 0 !important;
+    border-radius: 8px !important;
+    font-weight: 600 !important;
+    transition: transform .08s ease, box-shadow .08s ease;
+}
+.stButton button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(14, 124, 123, 0.18);
+}
+/* Bouton de la page active (type="primary") : accent plein plutôt que la
+   simple bordure grise du bouton "secondary" par défaut. */
+.stButton button[kind="primary"] {
+    box-shadow: 0 2px 10px rgba(14, 124, 123, 0.28);
+}
+h1 {
+    margin-bottom: .3rem !important;
+    letter-spacing: -0.01em;
+}
+h1 + div hr {
+    margin-top: .6rem !important;
+    margin-bottom: 1.4rem !important;
+    border-top: 2px solid #0E7C7B33 !important;
+}
+h2, h3 {
+    letter-spacing: -0.01em;
+}
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    letter-spacing: -0.01em;
 }
 </style>
 """,
@@ -91,15 +127,18 @@ st.markdown("---")
 col1, col2, col3, col4 = st.columns([1, 1, 1, 3])  # 4 colonnes pour équilibrer l'espace
 
 with col1:
-    if st.button(t("app.nav_accueil", lang), use_container_width=True):
+    est_active = st.session_state.get("selected_page") == "Accueil"
+    if st.button(t("app.nav_accueil", lang), use_container_width=True, type="primary" if est_active else "secondary"):
         st.session_state.selected_page = "Accueil"
 
 with col2:
-    if st.button(t("app.nav_arrets", lang), use_container_width=True):
+    est_active = st.session_state.get("selected_page") == "Arrêts"
+    if st.button(t("app.nav_arrets", lang), use_container_width=True, type="primary" if est_active else "secondary"):
         st.session_state.selected_page = "Arrêts"
 
 with col3:
-    if st.button(t("app.nav_lignes", lang), use_container_width=True):
+    est_active = st.session_state.get("selected_page") == "Lignes"
+    if st.button(t("app.nav_lignes", lang), use_container_width=True, type="primary" if est_active else "secondary"):
         st.session_state.selected_page = "Lignes"
 
 with col4:
