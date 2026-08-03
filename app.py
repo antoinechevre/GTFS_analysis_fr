@@ -126,20 +126,46 @@ section[data-testid="stSidebar"] h3 {
 st.markdown("---")
 col1, col2, col3, col4 = st.columns([1, 1, 1, 3])  # 4 colonnes pour équilibrer l'espace
 
+
+# Callback plutôt que "if st.button(...): st.session_state.selected_page = ...":
+# ce dernier ne met à jour session_state qu'après avoir déjà déterminé le
+# type="primary"/"secondary" (calculé plus haut dans le même script) des
+# boutons suivants, donc le bouton mis en avant au clic est systématiquement
+# celui de la page précédente (décalage d'un cran). Un on_click s'exécute
+# avant le rerun du script, donc avant que est_active soit recalculé.
+def _definir_page(page):
+    st.session_state.selected_page = page
+
+
 with col1:
     est_active = st.session_state.get("selected_page") == "Accueil"
-    if st.button(t("app.nav_accueil", lang), use_container_width=True, type="primary" if est_active else "secondary"):
-        st.session_state.selected_page = "Accueil"
+    st.button(
+        t("app.nav_accueil", lang),
+        use_container_width=True,
+        type="primary" if est_active else "secondary",
+        on_click=_definir_page,
+        args=("Accueil",),
+    )
 
 with col2:
     est_active = st.session_state.get("selected_page") == "Arrêts"
-    if st.button(t("app.nav_arrets", lang), use_container_width=True, type="primary" if est_active else "secondary"):
-        st.session_state.selected_page = "Arrêts"
+    st.button(
+        t("app.nav_arrets", lang),
+        use_container_width=True,
+        type="primary" if est_active else "secondary",
+        on_click=_definir_page,
+        args=("Arrêts",),
+    )
 
 with col3:
     est_active = st.session_state.get("selected_page") == "Lignes"
-    if st.button(t("app.nav_lignes", lang), use_container_width=True, type="primary" if est_active else "secondary"):
-        st.session_state.selected_page = "Lignes"
+    st.button(
+        t("app.nav_lignes", lang),
+        use_container_width=True,
+        type="primary" if est_active else "secondary",
+        on_click=_definir_page,
+        args=("Lignes",),
+    )
 
 with col4:
     st.write("")  # Espace vide pour équilibrer
