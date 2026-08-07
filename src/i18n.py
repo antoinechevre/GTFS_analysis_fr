@@ -13,7 +13,7 @@ LANGUES = {"fr": "🇫🇷 Français", "en": "🇬🇧 English"}
 TRANSLATIONS = {
     "fr": {
         # --- app.py : navigation et chargement ---
-        "app.title": "🚌 Analyse GTFS - Indicateurs de Transport",
+        "app.title": "🚌 Analyse GTFS - Indicateurs de Transport - France Métropolitaine",
         "app.nav_accueil": "🏠 Accueil",
         "app.nav_arrets": "📍 Arrêts",
         "app.nav_lignes": "🛤️ Lignes",
@@ -223,7 +223,7 @@ TRANSLATIONS = {
     },
     "en": {
         # --- app.py ---
-        "app.title": "🚌 GTFS Analysis - Transit Indicators",
+        "app.title": "🚌 GTFS Analysis - Transit Indicators - Mainland France",
         "app.nav_accueil": "🏠 Home",
         "app.nav_arrets": "📍 Stops",
         "app.nav_lignes": "🛤️ Lines",

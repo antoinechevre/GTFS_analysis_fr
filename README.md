@@ -128,6 +128,14 @@ Dans l’interface, l’utilisateur peut charger un fichier GTFS au format zip e
 
 En plus de l'upload, la barre latérale propose de choisir un GTFS déjà présent dans le catalogue partagé du dataset Hugging Face [antoinechevre/accessibility-data](https://huggingface.co/datasets/antoinechevre/accessibility-data) (dossier `GTFS/`, cf. `src/hf_cache.py`) : un GTFS uploadé par un visiteur y est renvoyé automatiquement pour être réutilisable sans réupload par la suite. Le dataset étant privé, un secret `HF_TOKEN` (droits lecture pour consulter le catalogue, écriture pour y contribuer) doit être configuré dans les paramètres du déploiement (Settings → Variables and secrets sur un Space Hugging Face) — sans lui, l'app se rabat silencieusement sur l'upload seul.
 
+L'application ne traite que des GTFS de France métropolitaine (centroïde des arrêts hors de ce périmètre → message d'erreur explicite) : les indicateurs proposés (arrêts/tronçons) et le catalogue partagé n'ont de sens que pour ce périmètre, contrairement à l'app sœur [Accessibilité](https://huggingface.co/spaces/antoinechevre/accessibility) dont le catalogue GTFS partagé inclut aussi des réseaux hors de France (Chicago, Frankfurt, Barcelone...).
+
+#### Onglet Benchmark
+
+L'onglet **Benchmark** affiche un nuage de points *Véhicules.km & arrêts* comparant tous les réseaux déjà enregistrés dans l'index partagé `benchmark/index_benchmark_reseaux.csv` du même dataset Hugging Face — population totale en abscisse, ordonnée paramétrable (bus.km, métro+tram.km, tout véhicules.km, nombre d'arrêts, ou ces quatre indicateurs rapportés à 1000 habitants). Le réseau actuellement chargé dans l'app, s'il y en a un, est surligné en rouge parmi les autres réseaux en bleu.
+
+Un bouton **« Enregistrer les indicateurs »** permet d'ajouter à cet index les métriques que cette app sait calculer (véhicules.km par mode, nombre d'arrêts, date du JOB) pour le réseau chargé. Cet index est partagé avec l'app sœur [Accessibilité](https://huggingface.co/spaces/antoinechevre/accessibility), qui y enregistre en plus ses propres indicateurs d'accessibilité aux équipements (% équipements accessibles par domaine et décile de niveau de vie) — non calculés ici, donc absents des lignes que cette app enregistre.
+
 ### Notebook d’exemple / démonstration
 
 Ouvrez ``gtfs_notebook.ipynb`` en local ou via [le lien Google Colab](https://colab.research.google.com/github/CEREMA/hackathon-gtfs/blob/main/gtfs_notebook.ipynb) pour suivre un workflow pas-à-pas :
