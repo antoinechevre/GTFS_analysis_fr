@@ -192,12 +192,23 @@ TRANSLATIONS = {
         ),
         "benchmark.bouton_enregistrer": "💾 Enregistrer les indicateurs de {reseau} dans l'index partagé",
         "benchmark.note_enregistrement": (
-            "Cette app n'enregistre que les métadonnées du réseau (véhicules.km, date du JOB) — "
-            "pas de données d'accessibilité (% équipements accessibles, décile...), calculées "
-            "uniquement par l'app sœur \"Accessibilité\"."
+            "Cette app enregistre les indicateurs qu'elle sait calculer (véhicules.km par mode, "
+            "nombre d'arrêts, date du JOB) — pas de données d'accessibilité (% équipements "
+            "accessibles, décile...), calculées uniquement par l'app sœur \"Accessibilité\"."
         ),
         "benchmark.succes_enregistrement": "✓ Indicateurs de {reseau} enregistrés dans l'index de benchmark partagé.",
         "benchmark.nom_domaine_gtfs": "Réseau enregistré depuis l'app Analyse GTFS (pas de données d'accessibilité)",
+        "benchmark.header_reseau": "Véhicules.km & arrêts",
+        "benchmark.caption_reseau": (
+            "Population totale en abscisse, un point par réseau — ordonnée paramétrable (bus/km, "
+            "métro+tram/km, tout véhicules.km, nombre d'arrêts, ou ces trois premiers indicateurs "
+            "rapportés à 1000 habitants) directement dans le graphique."
+        ),
+        "benchmark.info_vide_reseau": (
+            "Aucun réseau de l'index n'a encore ces indicateurs (bus/km, métro+tram/km, nombre "
+            "d'arrêts) — enregistre un réseau ci-dessus, ou relance l'analyse dans l'app sœur "
+            "\"Accessibilité\" pour les calculer et les enregistrer."
+        ),
 
         # --- src/cartographie.py ---
         "carto.arret_popup": "Arrêt ID: {stop_id}\nPassages: {passages}",
@@ -397,12 +408,23 @@ TRANSLATIONS = {
         ),
         "benchmark.bouton_enregistrer": "💾 Save {reseau}'s indicators to the shared index",
         "benchmark.note_enregistrement": (
-            "This app only saves network metadata (vehicle-km, JOB date) — not accessibility "
-            "data (% of amenities reachable, decile...), which is only computed by the sister "
-            "\"Accessibility\" app."
+            "This app saves the indicators it can compute (vehicle-km per mode, number of stops, "
+            "JOB date) — not accessibility data (% of amenities reachable, decile...), which is "
+            "only computed by the sister \"Accessibility\" app."
         ),
         "benchmark.succes_enregistrement": "✓ {reseau}'s indicators saved to the shared benchmark index.",
         "benchmark.nom_domaine_gtfs": "Network registered from the GTFS Analysis app (no accessibility data)",
+        "benchmark.header_reseau": "Vehicle-km & stops",
+        "benchmark.caption_reseau": (
+            "Total population on the X axis, one point per network — configurable Y axis (bus-km, "
+            "metro+tram-km, all vehicle-km, number of stops, or these first three indicators per "
+            "1000 inhabitants) directly in the chart."
+        ),
+        "benchmark.info_vide_reseau": (
+            "No network in the index has these indicators yet (bus-km, metro+tram-km, number of "
+            "stops) — register a network above, or rerun the analysis in the sister "
+            "\"Accessibility\" app to compute and save them."
+        ),
 
         # --- src/cartographie.py ---
         "carto.arret_popup": "Stop ID: {stop_id}\nPassages: {passages}",
