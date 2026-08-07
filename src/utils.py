@@ -39,6 +39,33 @@ def charger_gtfs(zip_path):
     return feed
 
 
+# Rectangles englobants approximatifs (pas un polygone précis des frontières)
+# pour distinguer la France métropolitaine des pays voisins proches en
+# longitude/latitude (ex: Frankfurt, Barcelone, tous deux dans le catalogue
+# GTFS partagé du dataset HF). MAINLAND couvre la France continentale ;
+# CORSE un rectangle séparé, car son étendue (jusqu'à ~41.3° de latitude)
+# chevauche celle de Barcelone si on l'intègre au rectangle continental.
+# Suffisant comme garde-fou (rejeter Chicago/Frankfurt/Barcelone) mais pas
+# comme vérification de frontière précise : une ville proche d'une frontière
+# terrestre (ex : Genève) pourrait être mal classée.
+BBOX_FRANCE_METROPOLITAINE_MAINLAND = {"lon_min": -5.5, "lon_max": 8.3, "lat_min": 42.3, "lat_max": 51.5}
+BBOX_FRANCE_METROPOLITAINE_CORSE = {"lon_min": 8.5, "lon_max": 9.6, "lat_min": 41.3, "lat_max": 43.1}
+
+
+def _dans_bbox(lat, lon, bbox):
+    return bbox["lat_min"] <= lat <= bbox["lat_max"] and bbox["lon_min"] <= lon <= bbox["lon_max"]
+
+
+def feed_dans_france_metropolitaine(feed):
+    """Détermine si un GTFS couvre la France métropolitaine, à partir du
+    centroïde (médiane, robuste aux valeurs aberrantes) des coordonnées de
+    stops.txt — cf. BBOX_FRANCE_METROPOLITAINE_* pour les limites de cette
+    approximation."""
+    lat = feed.stops["stop_lat"].median()
+    lon = feed.stops["stop_lon"].median()
+    return _dans_bbox(lat, lon, BBOX_FRANCE_METROPOLITAINE_MAINLAND) or _dans_bbox(
+        lat, lon, BBOX_FRANCE_METROPOLITAINE_CORSE
+    )
 
 
 

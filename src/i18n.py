@@ -17,6 +17,7 @@ TRANSLATIONS = {
         "app.nav_accueil": "🏠 Accueil",
         "app.nav_arrets": "📍 Arrêts",
         "app.nav_lignes": "🛤️ Lignes",
+        "app.nav_benchmark": "📊 Benchmark",
         "app.sidebar_header": "📁 Paramètres d'analyse",
         "app.sidebar_uploader": "Uploader le fichier GTFS (zip)",
         "app.sidebar_gtfs_existant": "...ou choisir un GTFS déjà présent",
@@ -28,6 +29,7 @@ TRANSLATIONS = {
         "app.spinner_chargement": "Chargement du fichier GTFS...",
         "app.erreur_chargement": "Erreur lors du chargement : {erreur}",
         "app.erreur_trop_agences": "⚠ Ce GTFS regroupe {n} agences : ce que l'app ne peut pas gérer. Charger un GTFS urbain uniquement.",
+        "app.erreur_hors_france": "⚠ Cette application n'est configurée que pour les villes de France métropolitaine",
 
         # --- infos réseau, communes à Arrêts et Lignes ---
         "commun.reseau_info": "Le GTFS concerne le réseau {reseau}",
@@ -173,6 +175,30 @@ TRANSLATIONS = {
         "export.col_premier_depart": "Premier départ",
         "export.col_dernier_depart": "Dernier départ",
 
+        # --- views/benchmark_reseaux.py ---
+        "benchmark.header": "Benchmark Villes Françaises",
+        "benchmark.caption": (
+            "% moyen d'équipements pondérés accessibles à 30/45/60 min et temps moyen pour en "
+            "atteindre 25/50/75%, par domaine et décile de niveau de vie — axes, domaine et "
+            "décile paramétrables directement dans le graphique. Données issues de l'app sœur "
+            "\"Accessibilité\"."
+        ),
+        "benchmark.info_reseau_actuel": "Réseau actuellement chargé : **{reseau}** — surligné en rouge ci-dessous.",
+        "benchmark.info_aucun_reseau": "Aucun GTFS chargé actuellement : tous les réseaux sont affichés en bleu.",
+        "benchmark.info_vide": (
+            "Aucun réseau n'a encore été enregistré dans l'index de benchmark — cet index est "
+            "alimenté par l'app sœur \"Accessibilité\" (bouton \"Enregistrer les indicateurs de ce "
+            "run\" de son onglet Accessibilité), pas par cette application."
+        ),
+        "benchmark.bouton_enregistrer": "💾 Enregistrer les indicateurs de {reseau} dans l'index partagé",
+        "benchmark.note_enregistrement": (
+            "Cette app n'enregistre que les métadonnées du réseau (véhicules.km, date du JOB) — "
+            "pas de données d'accessibilité (% équipements accessibles, décile...), calculées "
+            "uniquement par l'app sœur \"Accessibilité\"."
+        ),
+        "benchmark.succes_enregistrement": "✓ Indicateurs de {reseau} enregistrés dans l'index de benchmark partagé.",
+        "benchmark.nom_domaine_gtfs": "Réseau enregistré depuis l'app Analyse GTFS (pas de données d'accessibilité)",
+
         # --- src/cartographie.py ---
         "carto.arret_popup": "Arrêt ID: {stop_id}\nPassages: {passages}",
         "carto.legende_passages_titre": "Nombre de passages",
@@ -197,6 +223,7 @@ TRANSLATIONS = {
         "app.nav_accueil": "🏠 Home",
         "app.nav_arrets": "📍 Stops",
         "app.nav_lignes": "🛤️ Lines",
+        "app.nav_benchmark": "📊 Benchmark",
         "app.sidebar_header": "📁 Analysis settings",
         "app.sidebar_uploader": "Upload the GTFS file (zip)",
         "app.sidebar_gtfs_existant": "...or pick an existing GTFS",
@@ -208,6 +235,7 @@ TRANSLATIONS = {
         "app.spinner_chargement": "Loading GTFS file...",
         "app.erreur_chargement": "Error while loading: {erreur}",
         "app.erreur_trop_agences": "⚠ This GTFS covers {n} agencies, which the app cannot handle. Please load an urban GTFS only.",
+        "app.erreur_hors_france": "⚠ This application is only configured for cities in mainland France",
 
         "commun.reseau_info": "This GTFS covers the {reseau} network",
         "commun.analyse_du": "Analysis of {date}",
@@ -351,6 +379,30 @@ TRANSLATIONS = {
         "export.col_passages_jour": "Passages / day",
         "export.col_premier_depart": "First departure",
         "export.col_dernier_depart": "Last departure",
+
+        # --- views/benchmark_reseaux.py ---
+        "benchmark.header": "French Cities Benchmark",
+        "benchmark.caption": (
+            "Average % of weighted amenities reachable within 30/45/60 min, and average time to "
+            "reach 25/50/75% of them, by domain and living-standard decile — axes, domain and "
+            "decile are configurable directly in the chart. Data comes from the sister "
+            "\"Accessibility\" app."
+        ),
+        "benchmark.info_reseau_actuel": "Currently loaded network: **{reseau}** — highlighted in red below.",
+        "benchmark.info_aucun_reseau": "No GTFS currently loaded: all networks are shown in blue.",
+        "benchmark.info_vide": (
+            "No network has been registered in the benchmark index yet — this index is populated "
+            "by the sister \"Accessibility\" app (\"Save this run's indicators\" button on its "
+            "Accessibility tab), not by this application."
+        ),
+        "benchmark.bouton_enregistrer": "💾 Save {reseau}'s indicators to the shared index",
+        "benchmark.note_enregistrement": (
+            "This app only saves network metadata (vehicle-km, JOB date) — not accessibility "
+            "data (% of amenities reachable, decile...), which is only computed by the sister "
+            "\"Accessibility\" app."
+        ),
+        "benchmark.succes_enregistrement": "✓ {reseau}'s indicators saved to the shared benchmark index.",
+        "benchmark.nom_domaine_gtfs": "Network registered from the GTFS Analysis app (no accessibility data)",
 
         # --- src/cartographie.py ---
         "carto.arret_popup": "Stop ID: {stop_id}\nPassages: {passages}",

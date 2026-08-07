@@ -11,17 +11,22 @@ sys.path.append('..')
 
 import streamlit as st
 
-from src.utils import charger_gtfs, obtenir_service_ids_pour_date
+from src.utils import charger_gtfs, feed_dans_france_metropolitaine, obtenir_service_ids_pour_date
 from src.info_reseau import charger_ou_calculer_dates_service, recuperer_logo_reseau, nom_reseau
 from src.hf_cache import envoyer_vers_hf, lister_fichiers_hf, recuperer_depuis_hf
 from src.i18n import t, LANGUES
 from views.home import home_page
 from views.arrets import arrets_page
 from views.troncons import troncons_page
+from views.benchmark_reseaux import benchmark_page
 
 
 class TropAgencesError(Exception):
     """Levée quand le GTFS regroupe trop d'agences pour être traité par l'app."""
+
+
+class HorsFranceMetropolitaineError(Exception):
+    """Levée quand le centroïde des stops du GTFS tombe hors de France métropolitaine."""
 
 
 # Exception au garde-fou "max 3 agences" (cf. TropAgencesError ci-dessous),
@@ -124,7 +129,7 @@ section[data-testid="stSidebar"] h3 {
 )
 
 st.markdown("---")
-col1, col2, col3, col4 = st.columns([1, 1, 1, 3])  # 4 colonnes pour équilibrer l'espace
+col1, col2, col3, col4, col5 = st.columns([1, 1, 1, 1, 2])  # 5 colonnes pour équilibrer l'espace
 
 
 # Callback plutôt que "if st.button(...): st.session_state.selected_page = ...":
@@ -168,6 +173,16 @@ with col3:
     )
 
 with col4:
+    est_active = st.session_state.get("selected_page") == "Benchmark"
+    st.button(
+        t("app.nav_benchmark", lang),
+        use_container_width=True,
+        type="primary" if est_active else "secondary",
+        on_click=_definir_page,
+        args=("Benchmark",),
+    )
+
+with col5:
     st.write("")  # Espace vide pour équilibrer
 
 
@@ -288,6 +303,14 @@ def charger_donnees_gtfs():
         if nb_agences > 3 and not exception_valide:
             raise TropAgencesError(nb_agences)
 
+        # Les indicateurs proposés (arrêts/tronçons) et le catalogue partagé
+        # ne sont pertinents que pour des réseaux de France métropolitaine —
+        # le dataset HF partagé avec l'app sœur "accessibility" contient
+        # aussi des GTFS hors de ce périmètre (Chicago, Frankfurt,
+        # Barcelone...), qu'elle sait traiter mais pas cette app.
+        if not feed_dans_france_metropolitaine(feed):
+            raise HorsFranceMetropolitaineError()
+
         # Nom du réseau, calculé avant dates_service() : sert de clé de
         # cache disque+HF pour son résultat (cf.
         # charger_ou_calculer_dates_service, info_reseau.py).
@@ -339,6 +362,11 @@ def charger_donnees_gtfs():
         os.unlink(zip_path)
         st.stop()
 
+    except HorsFranceMetropolitaineError:
+        st.error(t("app.erreur_hors_france", lang))
+        os.unlink(zip_path)
+        st.stop()
+
     except Exception as e:
         st.error(t("app.erreur_chargement", lang, erreur=e))
         os.unlink(zip_path)
@@ -355,3 +383,5 @@ elif st.session_state.selected_page == "Arrêts":
     arrets_page(lang)
 elif st.session_state.selected_page == "Lignes":
     troncons_page(lang)
+elif st.session_state.selected_page == "Benchmark":
+    benchmark_page(lang)

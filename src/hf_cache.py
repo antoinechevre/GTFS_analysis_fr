@@ -97,6 +97,71 @@ def lister_fichiers_hf(sous_dossier):
     return sorted(f[len(prefixe):] for f in fichiers if f.startswith(prefixe) and f != prefixe)
 
 
+def _telecharger_dernier_csv(nom_fichier_hf, chemin_local):
+    """Télécharge TOUJOURS la version la plus récente d'un CSV partagé entre
+    plusieurs Spaces/déploiements via le dataset HF (ex:
+    benchmark/index_benchmark_reseaux.csv, modifié aussi bien par cette app
+    que par l'app sœur "accessibility" — cf. views/benchmark_reseaux.py) —
+    contrairement à recuperer_depuis_hf, qui garde la copie locale si déjà
+    présente et donc peut être en retard sur des lignes ajoutées ailleurs.
+    Retombe sur la copie locale si HF est inaccessible, puis sur None si
+    aucune des deux n'existe."""
+    import pandas as pd
+
+    try:
+        from huggingface_hub import hf_hub_download
+
+        chemin_distant = hf_hub_download(
+            repo_id=HF_DATA_REPO_ID,
+            repo_type="dataset",
+            filename=nom_fichier_hf,
+            token=os.environ.get("HF_TOKEN"),
+            force_download=True,
+        )
+        return pd.read_csv(chemin_distant)
+    except Exception as e:
+        print(f"[hf_cache] _telecharger_dernier_csv({nom_fichier_hf!r}) a échoué : {e!r}")
+
+    if os.path.exists(chemin_local):
+        return pd.read_csv(chemin_local)
+    return None
+
+
+def lire_csv_partage(nom_fichier_hf, chemin_local):
+    """Version lecture seule de _telecharger_dernier_csv, pour un affichage
+    (ex: nuage de points benchmark) sans vouloir y fusionner de nouvelles
+    lignes. Retourne None si introuvable sur HF et en local."""
+    return _telecharger_dernier_csv(nom_fichier_hf, chemin_local)
+
+
+def fusionner_et_envoyer_csv(nouvelles_lignes, nom_fichier_hf, chemin_local, colonne_cle, valeur_cle):
+    """Fusionne nouvelles_lignes (DataFrame) dans un CSV partagé entre
+    plusieurs Spaces/déploiements via le dataset HF (ex: index de benchmark
+    inter-réseaux, alimenté aussi bien par l'app accessibilité que par
+    cette app) — cf. _telecharger_dernier_csv.
+
+    Les lignes existantes où colonne_cle == valeur_cle sont retirées avant
+    d'ajouter nouvelles_lignes (une relance remplace plutôt que duplique).
+    Sauvegarde en local puis renvoie vers HF (best-effort, cf.
+    envoyer_vers_hf — un échec d'envoi n'empêche pas la sauvegarde locale).
+
+    Retourne le DataFrame fusionné (celui effectivement écrit en local).
+    """
+    import pandas as pd
+
+    index_existant = _telecharger_dernier_csv(nom_fichier_hf, chemin_local)
+    if index_existant is not None:
+        index_existant = index_existant[index_existant[colonne_cle] != valeur_cle]
+        tableau_final = pd.concat([index_existant, nouvelles_lignes], ignore_index=True)
+    else:
+        tableau_final = nouvelles_lignes
+
+    os.makedirs(os.path.dirname(chemin_local), exist_ok=True)
+    tableau_final.to_csv(chemin_local, index=False)
+    envoyer_vers_hf(chemin_local, nom_fichier_hf)
+    return tableau_final
+
+
 def charger_ou_calculer_avec_cache_hf(chemin_cache_local, nom_fichier_hf, fonction_calcul):
     """
     Cache à deux niveaux pour une étape de calcul coûteuse (tronçons
