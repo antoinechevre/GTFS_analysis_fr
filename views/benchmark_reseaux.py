@@ -1,18 +1,18 @@
 """
-Page Benchmark Villes Françaises - deux nuages de points comparant tous les
-réseaux déjà enregistrés dans l'index de benchmark partagé avec l'app sœur
-"Accessibilité" (https://huggingface.co/spaces/antoinechevre/accessibility),
-avec le réseau actuellement chargé ici (GTFS sélectionné dans la barre
-latérale de cette app, s'il y en a un) surligné en rouge parmi les autres
-en bleu :
-- Accessibilité aux équipements (src/nuage_points_benchmark.py) : axes,
-  domaine et décile paramétrables — cette app ne calcule pas ces
-  indicateurs (domaine, décile, % équipements atteints), qui restent donc
-  vides pour les réseaux qu'elle enregistre.
-- Véhicules.km & arrêts (src/nuage_points_reseau.py) : population en
-  abscisse, ordonnée paramétrable (bus/km, métro+tram/km, tout véh.km,
-  nombre d'arrêts) — ceux-là, cette app sait les calculer (onglets Lignes
-  et Arrêts) et les enregistrer.
+Page Benchmark Villes Françaises - nuage de points "Véhicules.km & arrêts"
+comparant tous les réseaux déjà enregistrés dans l'index de benchmark
+partagé avec l'app sœur "Accessibilité"
+(https://huggingface.co/spaces/antoinechevre/accessibility), avec le réseau
+actuellement chargé ici (GTFS sélectionné dans la barre latérale de cette
+app, s'il y en a un) surligné en rouge parmi les autres en bleu :
+population en abscisse, ordonnée paramétrable (bus/km, métro+tram/km, tout
+véh.km, nombre d'arrêts, ou ces indicateurs pour 1000 habitants) — cf.
+src/nuage_points_reseau.py.
+
+Le nuage "Accessibilité aux équipements" de l'app sœur (domaine/décile/%
+équipements atteints, cf. src/nuage_points_benchmark.py côté accessibility)
+n'est volontairement pas repris ici : cette app ne calcule aucun de ces
+indicateurs, qui restent vides pour tous les réseaux qu'elle enregistre.
 """
 
 import datetime
@@ -23,7 +23,6 @@ import streamlit as st
 
 from src.hf_cache import fusionner_et_envoyer_csv, lire_csv_partage
 from src.i18n import t
-from src.nuage_points_benchmark import generer_html_str
 from src.nuage_points_reseau import generer_html_str as generer_html_reseau_str
 
 BASE_DIR = os.getcwd()
@@ -105,7 +104,7 @@ def _enregistrer_indicateurs_reseau(reseau_actuel, chemin_local_benchmark, lang)
 
 def benchmark_page(lang="fr"):
     st.header(t("benchmark.header", lang))
-    st.caption(t("benchmark.caption", lang))
+    st.caption(t("benchmark.caption_reseau", lang))
 
     # Pas besoin d'avoir lancé d'analyse ici : seul un GTFS chargé (barre
     # latérale) détermine le réseau à surligner, s'il y en a un — sinon
@@ -128,13 +127,6 @@ def benchmark_page(lang="fr"):
     if tableau_benchmark_complet is None or tableau_benchmark_complet.empty:
         st.info(t("benchmark.info_vide", lang))
         return
-
-    html_benchmark = generer_html_str(tableau_benchmark_complet, reseau_actuel=reseau_actuel)
-    st.components.v1.html(html_benchmark, height=760, scrolling=False)
-
-    st.markdown("---")
-    st.markdown(f"### {t('benchmark.header_reseau', lang)}")
-    st.caption(t("benchmark.caption_reseau", lang))
 
     if not COLONNES_RESEAU & set(tableau_benchmark_complet.columns):
         st.info(t("benchmark.info_vide_reseau", lang))

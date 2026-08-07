@@ -177,12 +177,6 @@ TRANSLATIONS = {
 
         # --- views/benchmark_reseaux.py ---
         "benchmark.header": "Benchmark Villes Françaises",
-        "benchmark.caption": (
-            "% moyen d'équipements pondérés accessibles à 30/45/60 min et temps moyen pour en "
-            "atteindre 25/50/75%, par domaine et décile de niveau de vie — axes, domaine et "
-            "décile paramétrables directement dans le graphique. Données issues de l'app sœur "
-            "\"Accessibilité\"."
-        ),
         "benchmark.info_reseau_actuel": "Réseau actuellement chargé : **{reseau}** — surligné en rouge ci-dessous.",
         "benchmark.info_aucun_reseau": "Aucun GTFS chargé actuellement : tous les réseaux sont affichés en bleu.",
         "benchmark.info_vide": (
@@ -198,10 +192,9 @@ TRANSLATIONS = {
         ),
         "benchmark.succes_enregistrement": "✓ Indicateurs de {reseau} enregistrés dans l'index de benchmark partagé.",
         "benchmark.nom_domaine_gtfs": "Réseau enregistré depuis l'app Analyse GTFS (pas de données d'accessibilité)",
-        "benchmark.header_reseau": "Véhicules.km & arrêts",
         "benchmark.caption_reseau": (
             "Population totale en abscisse, un point par réseau — ordonnée paramétrable (bus/km, "
-            "métro+tram/km, tout véhicules.km, nombre d'arrêts, ou ces trois premiers indicateurs "
+            "métro+tram/km, tout véhicules.km, nombre d'arrêts, ou ces quatre indicateurs "
             "rapportés à 1000 habitants) directement dans le graphique."
         ),
         "benchmark.info_vide_reseau": (
@@ -393,12 +386,6 @@ TRANSLATIONS = {
 
         # --- views/benchmark_reseaux.py ---
         "benchmark.header": "French Cities Benchmark",
-        "benchmark.caption": (
-            "Average % of weighted amenities reachable within 30/45/60 min, and average time to "
-            "reach 25/50/75% of them, by domain and living-standard decile — axes, domain and "
-            "decile are configurable directly in the chart. Data comes from the sister "
-            "\"Accessibility\" app."
-        ),
         "benchmark.info_reseau_actuel": "Currently loaded network: **{reseau}** — highlighted in red below.",
         "benchmark.info_aucun_reseau": "No GTFS currently loaded: all networks are shown in blue.",
         "benchmark.info_vide": (
@@ -414,10 +401,9 @@ TRANSLATIONS = {
         ),
         "benchmark.succes_enregistrement": "✓ {reseau}'s indicators saved to the shared benchmark index.",
         "benchmark.nom_domaine_gtfs": "Network registered from the GTFS Analysis app (no accessibility data)",
-        "benchmark.header_reseau": "Vehicle-km & stops",
         "benchmark.caption_reseau": (
             "Total population on the X axis, one point per network — configurable Y axis (bus-km, "
-            "metro+tram-km, all vehicle-km, number of stops, or these first three indicators per "
+            "metro+tram-km, all vehicle-km, number of stops, or these four indicators per "
             "1000 inhabitants) directly in the chart."
         ),
         "benchmark.info_vide_reseau": (
